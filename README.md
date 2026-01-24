@@ -33,7 +33,7 @@ LibreNMS MCP Server is a Python-based Model Context Protocol (MCP) server design
 
 ### Prerequisites
 
-- Python 3.11, 3.12 or 3.13
+- Python 3.11 to 3.14
 - Access to a LibreNMS
 - Valid LibreNMS token with appropriate permissions
 

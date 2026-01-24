@@ -1,4 +1,4 @@
-FROM python:3.13-alpine3.23 AS builder
+FROM python:3.14-alpine3.23 AS builder
 
 RUN pip install --root-user-action=ignore --no-cache-dir --upgrade pip \
     && pip install --root-user-action=ignore --no-cache-dir uv
@@ -19,7 +19,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --all-extras --no-dev
 
 
-FROM python:3.13-alpine3.23
+FROM python:3.14-alpine3.23
 LABEL org.opencontainers.image.title="LibreNMS MCP Server" \
       org.opencontainers.image.description="MCP server for LibreNMS management" \
       org.opencontainers.image.url="https://github.com/mhajder/librenms-mcp" \
