@@ -1,0 +1,134 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.mhajder/librenms-mcp",
+  "description": "MCP server for LibreNMS network monitoring - query devices, ports, alerts, and manage infrastructure",
+  "title": "LibreNMS MCP",
+  "websiteUrl": "https://github.com/mhajder/librenms-mcp",
+  "repository": {
+    "url": "https://github.com/mhajder/librenms-mcp",
+    "source": "github"
+  },
+  "version": "1.4.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "librenms-mcp",
+      "version": "1.4.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "LIBRENMS_URL",
+          "description": "LibreNMS instance URL (e.g., https://librenms.example.com)",
+          "isRequired": true,
+          "isSecret": false
+        },
+        {
+          "name": "LIBRENMS_TOKEN",
+          "description": "LibreNMS API token with appropriate permissions",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "LIBRENMS_READ_ONLY",
+          "description": "Enable read-only mode to restrict write operations",
+          "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    },
+    {
+      "registryType": "pypi",
+      "identifier": "librenms-mcp",
+      "version": "1.4.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "streamable-http",
+        "url": "http://localhost:{MCP_HTTP_PORT}/mcp"
+      },
+      "environmentVariables": [
+        {
+          "name": "LIBRENMS_URL",
+          "description": "LibreNMS instance URL (e.g., https://librenms.example.com)",
+          "isRequired": true,
+          "isSecret": false
+        },
+        {
+          "name": "LIBRENMS_TOKEN",
+          "description": "LibreNMS API token with appropriate permissions",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "LIBRENMS_READ_ONLY",
+          "description": "Enable read-only mode to restrict write operations",
+          "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "MCP_HTTP_PORT",
+          "description": "Port for HTTP server (default: 8000)",
+          "default": "8000",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "MCP_TRANSPORT",
+          "description": "MCP transport type (http for HTTP, stdio for stdio)",
+          "value": "http",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    },
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/mhajder/librenms-mcp:1.4.0",
+      "transport": {
+        "type": "streamable-http",
+        "url": "http://localhost:{MCP_HTTP_PORT}/mcp"
+      },
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "-p",
+          "value": "{MCP_HTTP_PORT}:8000",
+          "description": "Port mapping for HTTP transport",
+          "isRequired": true
+        }
+      ],
+      "environmentVariables": [
+        {
+          "name": "LIBRENMS_URL",
+          "description": "LibreNMS instance URL (e.g., https://librenms.example.com)",
+          "isRequired": true,
+          "isSecret": false
+        },
+        {
+          "name": "LIBRENMS_TOKEN",
+          "description": "LibreNMS API token with appropriate permissions",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "LIBRENMS_READ_ONLY",
+          "description": "Enable read-only mode to restrict write operations",
+          "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "MCP_HTTP_PORT",
+          "description": "Port for HTTP server (default: 8000)",
+          "default": "8000",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

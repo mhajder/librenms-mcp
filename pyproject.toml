@@ -136,3 +136,13 @@ version_scheme = "pep440"
 version_provider = "uv"
 update_changelog_on_bump = true
 major_version_zero = true
+
+[[tool.commitizen.update_major_version_patterns]]
+files = ["server.json"]
+pattern = "\"version\": \"{current_version}\""
+replace = "\"version\": \"{new_version}\""
+
+[[tool.commitizen.update_major_version_patterns]]
+files = ["server.json"]
+pattern = "ghcr.io/mhajder/librenms-mcp:{current_version}"
+replace = "ghcr.io/mhajder/librenms-mcp:{new_version}"

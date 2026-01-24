@@ -25,7 +25,8 @@ LABEL org.opencontainers.image.title="LibreNMS MCP Server" \
       org.opencontainers.image.url="https://github.com/mhajder/librenms-mcp" \
       org.opencontainers.image.source="https://github.com/mhajder/librenms-mcp" \
       org.opencontainers.image.vendor="Mateusz Hajder" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.licenses="MIT" \
+      io.modelcontextprotocol.server.name="io.github.mhajder/librenms-mcp"
 ENV PYTHONUNBUFFERED=1
 
 RUN apk add --no-cache ca-certificates \

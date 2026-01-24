@@ -234,3 +234,5 @@ cache/
 
 # ruff cache
 .ruff_cache/
+
+.mcpregistry_*

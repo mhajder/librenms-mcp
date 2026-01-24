@@ -1,5 +1,7 @@
 # LibreNMS MCP Server
 
+<!-- mcp-name: io.github.mhajder/librenms-mcp -->
+
 LibreNMS MCP Server is a Python-based Model Context Protocol (MCP) server designed to provide advanced, programmable access to LibreNMS network monitoring data and management features. It exposes a modern API for querying, automating, and integrating LibreNMS resources such as devices, ports, alerts, inventory, locations, logs, and more. The server supports both read and write operations, robust security features, and is suitable for integration with automation tools, dashboards, and custom network management workflows.
 
 ## Features
