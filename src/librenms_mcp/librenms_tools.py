@@ -331,8 +331,8 @@ Example:
         payload: Annotated[
             dict,
             Field(
-                description="""Alert rule edit payload (must include id field):
-- id (required): Rule ID to edit
+                description="""Alert rule edit payload (must include rule_id field):
+- rule_id (required): Rule ID to edit
 - name: Rule name
 - builder: Rule builder JSON with conditions
 - devices: Array of device IDs or [-1] for all devices
@@ -358,7 +358,7 @@ Example:
             dict: The JSON response from the API.
         """
         try:
-            await ctx.info(f"Editing rule {payload.get('id')}...")
+            await ctx.info(f"Editing rule {payload.get('rule_id')}...")
 
             async with LibreNMSClient(config) as client:
                 return await client.put("rules", data=payload)
