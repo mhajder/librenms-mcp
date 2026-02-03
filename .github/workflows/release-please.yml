@@ -1,0 +1,79 @@
+name: Release Please
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: release
+  cancel-in-progress: true
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    environment: release
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          target-branch: main
+
+      - name: Update OCI identifier in PR
+        if: steps.release.outputs.pr != null
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          PR_JSON: ${{ steps.release.outputs.pr }}
+        run: |
+          # Get PR info from environment variable
+          BRANCH=$(echo "$PR_JSON" | jq -r '.headBranchName')
+
+          # Get current server.json content and decode from PR branch
+          CURRENT_CONTENT=$(gh api repos/${{ github.repository }}/contents/server.json?ref=$BRANCH --jq '.content' | base64 -d)
+
+          VERSION=$(echo "$CURRENT_CONTENT" | jq -r '.version')
+          echo "Bumping Version to $VERSION"
+
+          # Update the OCI identifier with proper jq argument passing
+          UPDATED_CONTENT=$(echo "$CURRENT_CONTENT" | jq --arg version "$VERSION" --arg repo "${{ github.repository }}" '.packages[2].identifier = ("ghcr.io/" + $repo + ":" + $version)')
+
+          # Encode for API
+          ENCODED_CONTENT=$(echo "$UPDATED_CONTENT" | base64 -w 0)
+
+          # Get current SHA for update
+          SHA=$(gh api repos/${{ github.repository }}/contents/server.json?ref=$BRANCH --jq '.sha')
+
+          # Update file via API (creates new commit)
+          gh api repos/${{ github.repository }}/contents/server.json \
+            -X PUT \
+            -F message="chore: update OCI identifier to $VERSION" \
+            -F content="$ENCODED_CONTENT" \
+            -F sha="$SHA" \
+            -F branch="$BRANCH"
+
+      - name: Update Release with Docker Images
+        if: steps.release.outputs.release_created == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release.outputs.tag_name }}
+          name: ${{ steps.release.outputs.tag_name }}
+          append_body: true
+          body: |
+            ## Docker Images
+            - `ghcr.io/${{ github.repository }}:${{ steps.release.outputs.tag_name }}`
+            - `ghcr.io/${{ github.repository }}o:${{ steps.release.outputs.tag_name }}`
