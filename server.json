@@ -8,12 +8,12 @@
     "url": "https://github.com/mhajder/librenms-mcp",
     "source": "github"
   },
-  "version": "1.5.0",
+  "version": "1.6.0",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "librenms-mcp",
-      "version": "1.5.0",
+      "version": "1.6.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
@@ -43,7 +43,7 @@
     {
       "registryType": "pypi",
       "identifier": "librenms-mcp",
-      "version": "1.5.0",
+      "version": "1.6.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "streamable-http",
