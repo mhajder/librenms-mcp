@@ -206,6 +206,12 @@ MCP_HTTP_BEARER_TOKEN=
 - `device_availability`: Get device availability
 - `device_outages`: Get device outages
 - `device_set_maintenance`: Set device maintenance mode
+- `device_discover`: Discover or add a device using provided credentials
+- `device_rename`: Rename an existing device
+- `device_maintenance_status`: Get the maintenance status for a device
+- `device_vlans`: List VLANs for a device
+- `device_links`: List links for a device
+- `device_eventlog_add`: Add an event log entry for a device
 - `inventory_device`: Get inventory for a device
 - `inventory_device_flat`: Get flat inventory for a device
 - `devicegroups_list`: List device groups
@@ -221,10 +227,19 @@ MCP_HTTP_BEARER_TOKEN=
 - `location_edit`: Edit a location
 - `location_delete`: Delete a location
 - `location_get`: Get details for a location
+- `location_set_maintenance`: Set maintenance for a location
 
 ### Port & Port Group Tools
 
 - `ports_list`: List all ports (with optional filters)
+- `ports_search`: Search ports (general search)
+- `ports_search_field`: Search ports by a specific field
+- `ports_search_mac`: Search ports by MAC address
+- `port_get`: Get details for a specific port
+- `port_ip_info`: Get IP address information for a port
+- `port_transceiver`: Get transceiver information for a port
+- `port_description_get`: Get a port description
+- `port_description_update`: Update a port description
 - `port_groups_list`: List port groups
 - `port_group_add`: Add a port group
 - `port_group_list_ports`: List ports in a port group
@@ -242,6 +257,11 @@ MCP_HTTP_BEARER_TOKEN=
 - `alert_rule_add`: Add an alert rule
 - `alert_rule_edit`: Edit an alert rule
 - `alert_rule_delete`: Delete an alert rule
+- `alert_templates_list`: List all alert templates
+- `alert_template_get`: Get a specific alert template
+- `alert_template_create`: Create a new alert template
+- `alert_template_edit`: Edit an alert template
+- `alert_template_delete`: Delete an alert template
 - `logs_eventlog`: Get event log for a device
 - `logs_syslog`: Get syslog for a device
 - `logs_alertlog`: Get alert log for a device
@@ -267,6 +287,21 @@ MCP_HTTP_BEARER_TOKEN=
 - `routing_ip_addresses`: List all IP addresses from LibreNMS.
 - `services_list`: List all services from LibreNMS.
 - `services_for_device`: Get services for a device from LibreNMS.
+- `service_add`: Add a service to LibreNMS
+- `service_edit`: Edit an existing service
+- `service_delete`: Delete a service
+- `bgp_sessions`: List BGP sessions
+- `bgp_session_get`: Get details for a specific BGP session
+- `bgp_session_edit`: Edit a BGP session
+- `fdb_lookup`: Lookup forwarding database (FDB) entries
+- `ospf_list`: List OSPF instances
+- `ospf_ports`: List OSPF ports
+- `vrf_list`: List VRFs
+- `ping`: Ping the LibreNMS system
+- `health_list`: List health sensors
+- `health_by_type`: List health sensors by type
+- `health_sensor_get`: Get details for a health sensor
+- `sensors_list`: List sensors
 - `switching_vlans`: List all VLANs from LibreNMS.
 - `switching_links`: List all links from LibreNMS.
 - `system_info`: Get system info from LibreNMS.
