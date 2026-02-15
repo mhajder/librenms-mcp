@@ -20,7 +20,7 @@ def register_tools(mcp, config):
     ##########################
 
     @mcp.tool(
-        tags={"librenms", "alert", "read-only"},
+        tags={"librenms", "alert", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -90,7 +90,7 @@ def register_tools(mcp, config):
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "alert", "read-only"},
+        tags={"librenms", "alert", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -124,7 +124,7 @@ def register_tools(mcp, config):
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "alert"},
+        tags={"librenms", "alert", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -179,7 +179,7 @@ def register_tools(mcp, config):
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "alert"},
+        tags={"librenms", "alert", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -214,7 +214,7 @@ def register_tools(mcp, config):
     ##########################
 
     @mcp.tool(
-        tags={"librenms", "alert-rules", "read-only"},
+        tags={"librenms", "alert-rules", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -239,7 +239,7 @@ def register_tools(mcp, config):
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "alert-rules", "read-only"},
+        tags={"librenms", "alert-rules", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -270,7 +270,7 @@ def register_tools(mcp, config):
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "alert-rules"},
+        tags={"librenms", "alert-rules", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -320,7 +320,7 @@ Example:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "alert-rules"},
+        tags={"librenms", "alert-rules", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -368,7 +368,7 @@ Example:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "alert-rules"},
+        tags={"librenms", "alert-rules", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -582,7 +582,7 @@ Example:
     ##########################
 
     @mcp.tool(
-        tags={"librenms", "arp", "read-only"},
+        tags={"librenms", "arp", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -896,7 +896,7 @@ Example:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "bills"},
+        tags={"librenms", "bills", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -942,7 +942,7 @@ Example:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "bills"},
+        tags={"librenms", "bills", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -976,7 +976,7 @@ Example:
     # Device Groups
     ##########################
     @mcp.tool(
-        tags={"librenms", "device-groups", "read-only"},
+        tags={"librenms", "device-groups", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -1001,7 +1001,7 @@ Example:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "device-groups"},
+        tags={"librenms", "device-groups", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1048,7 +1048,7 @@ Example dynamic group:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "device-groups"},
+        tags={"librenms", "device-groups", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1091,7 +1091,7 @@ Example dynamic group:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "device-groups"},
+        tags={"librenms", "device-groups", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1122,7 +1122,7 @@ Example dynamic group:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "device-groups", "read-only"},
+        tags={"librenms", "device-groups", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -1167,7 +1167,7 @@ Example dynamic group:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "device-groups"},
+        tags={"librenms", "device-groups", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1211,7 +1211,7 @@ Example dynamic group:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "device-groups"},
+        tags={"librenms", "device-groups", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1249,7 +1249,7 @@ Example dynamic group:
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "device-groups"},
+        tags={"librenms", "device-groups", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1337,7 +1337,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "devices"},
+        tags={"librenms", "devices", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1418,7 +1418,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "devices"},
+        tags={"librenms", "devices", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1449,7 +1449,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "devices"},
+        tags={"librenms", "devices", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1645,7 +1645,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "devices"},
+        tags={"librenms", "devices", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -1780,7 +1780,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
     # Locations
     ##########################
     @mcp.tool(
-        tags={"librenms", "locations", "read-only"},
+        tags={"librenms", "locations", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -1805,7 +1805,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "locations"},
+        tags={"librenms", "locations", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1845,7 +1845,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "locations"},
+        tags={"librenms", "locations", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1876,7 +1876,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "locations"},
+        tags={"librenms", "locations", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1918,7 +1918,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "locations", "read-only"},
+        tags={"librenms", "locations", "read-only", "admin"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -1951,7 +1951,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
     # Logs
     ##########################
     @mcp.tool(
-        tags={"librenms", "logs", "read-only"},
+        tags={"librenms", "logs", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -2027,7 +2027,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "logs", "read-only"},
+        tags={"librenms", "logs", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -2103,7 +2103,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "logs", "read-only"},
+        tags={"librenms", "logs", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -2179,7 +2179,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "logs", "read-only"},
+        tags={"librenms", "logs", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -2254,7 +2254,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "logs"},
+        tags={"librenms", "logs", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -2293,7 +2293,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
     # Poller Groups
     ##########################
     @mcp.tool(
-        tags={"librenms", "poller-groups", "read-only"},
+        tags={"librenms", "poller-groups", "read-only", "admin"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -2329,7 +2329,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
     # Port Groups
     ##########################
     @mcp.tool(
-        tags={"librenms", "port-groups", "read-only"},
+        tags={"librenms", "port-groups", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -2354,7 +2354,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "port-groups"},
+        tags={"librenms", "port-groups", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -2392,7 +2392,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "port-groups", "read-only"},
+        tags={"librenms", "port-groups", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -2422,7 +2422,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "port-groups"},
+        tags={"librenms", "port-groups", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -2460,7 +2460,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "port-groups"},
+        tags={"librenms", "port-groups", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -2814,7 +2814,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
     # Routing (subset)
     ##########################
     @mcp.tool(
-        tags={"librenms", "routing", "read-only"},
+        tags={"librenms", "routing", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -2902,7 +2902,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "routing", "read-only"},
+        tags={"librenms", "routing", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -2932,7 +2932,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "routing"},
+        tags={"librenms", "routing", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -2970,7 +2970,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "routing", "read-only"},
+        tags={"librenms", "routing", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -2998,7 +2998,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
     # Services
     ##########################
     @mcp.tool(
-        tags={"librenms", "services", "read-only"},
+        tags={"librenms", "services", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -3047,7 +3047,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "services", "read-only"},
+        tags={"librenms", "services", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -3100,7 +3100,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "services"},
+        tags={"librenms", "services", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -3145,7 +3145,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "services"},
+        tags={"librenms", "services", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -3188,7 +3188,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "services"},
+        tags={"librenms", "services", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -3567,7 +3567,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
     # OSPF
     ##########################
     @mcp.tool(
-        tags={"librenms", "routing", "ospf", "read-only"},
+        tags={"librenms", "routing", "ospf", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -3592,7 +3592,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "routing", "ospf", "read-only"},
+        tags={"librenms", "routing", "ospf", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
@@ -3648,7 +3648,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
     # Location Maintenance
     ##########################
     @mcp.tool(
-        tags={"librenms", "locations"},
+        tags={"librenms", "locations", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
