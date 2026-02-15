@@ -2263,9 +2263,9 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
     )
     async def logs_syslogsink(
         payload: Annotated[
-            dict,
+            dict[str, Any] | list[dict[str, Any]],
             Field(
-                description="JSON syslog message to ingest into LibreNMS syslog storage"
+                description="JSON syslog message(s) to ingest into LibreNMS syslog storage. Accepts a single object or an array of objects."
             ),
         ],
         ctx: Context = None,
@@ -2283,7 +2283,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info("Adding syslog sink...")
 
             async with LibreNMSClient(config) as client:
-                return await client.post("logs/syslogsink", data=payload)
+                return await client.post("syslogsink", data=payload)
 
         except Exception as e:
             await ctx.error(f"Error syslogsink: {e!s}")
