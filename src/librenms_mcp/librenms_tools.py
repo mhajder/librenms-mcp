@@ -3497,8 +3497,9 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             dict,
             Field(
                 description="""Event log entry payload:
-- message (required): Event message text
-- type (optional): Event type/category"""
+- text (required): Event message text
+- type (optional): Event type/category
+- severity (optional): Severity level (1-5)"""
             ),
         ],
         ctx: Context = None,
