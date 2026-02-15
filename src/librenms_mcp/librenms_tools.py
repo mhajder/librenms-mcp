@@ -1084,7 +1084,7 @@ Example dynamic group:
             await ctx.info(f"Updating device group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.put(f"devicegroups/{name}", data=payload)
+                return await client.patch(f"devicegroups/{name}", data=payload)
 
         except Exception as e:
             await ctx.error(f"Error updating device group {name}: {e!s}")
@@ -1909,7 +1909,9 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info(f"Editing location {location}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.put(f"locations/{location}", data=payload)
+                return await client.patch(
+                    f"locations/{quote(location, safe='')}", data=payload
+                )
 
         except Exception as e:
             await ctx.error(f"Error editing location {location}: {e!s}")
@@ -2803,7 +2805,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Updating port description {port_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.put(f"ports/{port_id}/description", data=payload)
+                return await client.patch(f"ports/{port_id}/description", data=payload)
 
         except Exception as e:
             await ctx.error(f"Error updating description {port_id}: {e!s}")
@@ -3180,7 +3182,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             await ctx.info(f"Editing service {service_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.put(f"services/{service_id}", data=payload)
+                return await client.patch(f"services/{service_id}", data=payload)
 
         except Exception as e:
             await ctx.error(f"Error editing service {service_id}: {e!s}")
