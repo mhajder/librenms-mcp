@@ -1869,7 +1869,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info(f"Deleting location {location}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.delete(f"locations/{location}")
+                return await client.delete(f"locations/{quote(location, safe='')}")
 
         except Exception as e:
             await ctx.error(f"Error deleting location {location}: {e!s}")
@@ -1941,7 +1941,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info(f"Getting location {location}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"location/{location}")
+                return await client.get(f"location/{quote(location, safe='')}")
 
         except Exception as e:
             await ctx.error(f"Error getting location {location}: {e!s}")
@@ -3684,7 +3684,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
 
             async with LibreNMSClient(config) as client:
                 return await client.post(
-                    f"locations/{location}/maintenance", data=payload
+                    f"locations/{quote(location, safe='')}/maintenance", data=payload
                 )
 
         except Exception as e:
