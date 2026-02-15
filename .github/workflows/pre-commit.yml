@@ -1,0 +1,27 @@
+name: Pre-commit Checks
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prek:
+    name: Run prek
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install the latest version of uv and set the python version
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.13"
+
+      - name: Run prek
+        uses: j178/prek-action@v1
