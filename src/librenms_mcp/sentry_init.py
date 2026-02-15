@@ -48,7 +48,11 @@ def init_sentry() -> bool:
         profile_session_sample_rate = float(
             os.getenv("SENTRY_PROFILE_SESSION_SAMPLE_RATE", "1.0")
         )
-        profile_lifecycle = os.getenv("SENTRY_PROFILE_LIFECYCLE", "trace")
+        profile_lifecycle_str = os.getenv("SENTRY_PROFILE_LIFECYCLE", "trace")
+        # Ensure profile_lifecycle is a valid literal value
+        profile_lifecycle: str = (
+            "manual" if profile_lifecycle_str == "manual" else "trace"
+        )
         enable_logs = parse_bool(os.getenv("SENTRY_ENABLE_LOGS"), default=True)
 
         # Get package version for default release

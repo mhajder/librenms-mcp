@@ -51,14 +51,16 @@ except Exception as e:
 # Create auth provider if bearer token is configured
 auth_provider = None
 if getattr(TRANSPORT_CONFIG, "http_bearer_token", None):
-    auth_provider = StaticTokenVerifier(
-        tokens={
-            TRANSPORT_CONFIG.http_bearer_token: {
-                "client_id": "authenticated-client",
-                "scopes": ["read", "write"],
+    bearer_token = TRANSPORT_CONFIG.http_bearer_token
+    if bearer_token:  # Type narrowing: ensures bearer_token is str, not None
+        auth_provider = StaticTokenVerifier(
+            tokens={
+                bearer_token: {
+                    "client_id": "authenticated-client",
+                    "scopes": ["read", "write"],
+                }
             }
-        }
-    )
+        )
 
 # Initialize FastMCP server
 mcp = FastMCP(

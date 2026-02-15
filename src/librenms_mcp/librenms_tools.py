@@ -6,7 +6,7 @@ from typing import Annotated
 from typing import Any
 from urllib.parse import quote
 
-from fastmcp import Context
+from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
@@ -28,6 +28,7 @@ def register_tools(mcp, config):
         },
     )
     async def alerts_get(
+        ctx: Context,
         state: Annotated[
             int | None,
             Field(
@@ -55,7 +56,6 @@ def register_tools(mcp, config):
                 description="How to order the output, default is by timestamp (descending). Can be appended by DESC or ASC to change the order. Optional.",
             ),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         Get alerts from LibreNMS with optional filters.
@@ -102,7 +102,7 @@ def register_tools(mcp, config):
             int,
             Field(description="The ID of the alert to retrieve.", ge=1),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get a specific alert from LibreNMS by ID.
@@ -132,6 +132,7 @@ def register_tools(mcp, config):
         },
     )
     async def alert_acknowledge(
+        ctx: Context,
         alert_id: Annotated[int, Field(ge=1, description="Alert ID to acknowledge")],
         note: Annotated[
             str | None,
@@ -147,7 +148,6 @@ def register_tools(mcp, config):
                 description="If true, acknowledge until the alert clears. If false, acknowledge only this instance.",
             ),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         Acknowledge an alert in LibreNMS by ID.
@@ -188,7 +188,7 @@ def register_tools(mcp, config):
     )
     async def alert_unmute(
         alert_id: Annotated[int, Field(ge=1, description="Alert ID to unmute")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Unmute an alert in LibreNMS by ID.
@@ -221,7 +221,7 @@ def register_tools(mcp, config):
             "idempotentHint": True,
         },
     )
-    async def alert_rules_list(ctx: Context = None) -> dict:
+    async def alert_rules_list(ctx: Context) -> dict:
         """
         List all alert rules from LibreNMS.
 
@@ -248,7 +248,7 @@ def register_tools(mcp, config):
     )
     async def alert_rule_get(
         rule_id: Annotated[int, Field(ge=1, description="Alert rule ID")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get details for a specific alert rule by ID.
@@ -298,7 +298,7 @@ Example:
 {"name": "Device Down", "severity": "critical", "devices": [-1], "builder": {"condition": "AND", "rules": [...]}}"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Add a new alert rule to LibreNMS.
@@ -346,7 +346,7 @@ Example:
 - disabled: Disable rule (0/1)"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Edit an existing alert rule in LibreNMS.
@@ -377,7 +377,7 @@ Example:
     )
     async def alert_rule_delete(
         rule_id: Annotated[int, Field(ge=1, description="Alert rule ID to delete")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Delete an alert rule from LibreNMS by ID.
@@ -410,7 +410,7 @@ Example:
             "idempotentHint": True,
         },
     )
-    async def alert_templates_list(ctx: Context = None) -> dict:
+    async def alert_templates_list(ctx: Context) -> dict:
         """
         List all alert templates from LibreNMS.
 
@@ -437,7 +437,7 @@ Example:
     )
     async def alert_template_get(
         template_id: Annotated[int, Field(ge=1, description="Alert template ID")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get a specific alert template from LibreNMS by ID.
@@ -481,7 +481,7 @@ Example:
 {"name": "Custom Alert", "template": "{{ $alert->title }}\\nSeverity: {{ $alert->severity }}", "title": "Alert: {{ $alert->title }}"}"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Create a new alert template in LibreNMS.
@@ -523,7 +523,7 @@ Example:
 - rules: Array of alert rule IDs to associate with this template"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Edit an existing alert template in LibreNMS.
@@ -556,7 +556,7 @@ Example:
         template_id: Annotated[
             int, Field(ge=1, description="Alert template ID to delete")
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Delete an alert template from LibreNMS by ID.
@@ -596,7 +596,7 @@ Example:
                 description='Search string for ARP entries. Supports IP address, MAC address, CIDR notation, or "all" (use with device parameter for all entries on a device)'
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Retrieve ARP entries from LibreNMS by search query.
@@ -630,6 +630,7 @@ Example:
         },
     )
     async def bills_list(
+        ctx: Context,
         period: Annotated[
             str | None,
             Field(
@@ -643,7 +644,6 @@ Example:
         custid: Annotated[
             str | None, Field(default=None, description="Customer ID filter")
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         List bills from LibreNMS with optional filters.
@@ -683,11 +683,11 @@ Example:
         },
     )
     async def bill_get(
+        ctx: Context,
         bill_id: Annotated[int, Field(ge=1, description="Bill ID")],
         period: Annotated[
             str | None, Field(default=None, description="Optional period=previous")
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         Get a specific bill from LibreNMS by ID.
@@ -726,7 +726,7 @@ Example:
             str,
             Field(description="Graph type: bits, monthly, hour, or day"),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get bill graph image from LibreNMS.
@@ -762,7 +762,7 @@ Example:
             str,
             Field(description="Graph type: bits, monthly, hour, or day"),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get bill graph data from LibreNMS.
@@ -794,7 +794,7 @@ Example:
     )
     async def bill_history(
         bill_id: Annotated[int, Field(ge=1)],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get bill history from LibreNMS.
@@ -830,7 +830,7 @@ Example:
             str,
             Field(description="Graph type: bits, monthly, hour, or day"),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get bill history graph from LibreNMS.
@@ -870,7 +870,7 @@ Example:
             str,
             Field(description="Graph type: bits, monthly, hour, or day"),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get bill history graph data from LibreNMS.
@@ -920,7 +920,7 @@ Example:
 - bill_notes (optional): Notes"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Create or update a bill in LibreNMS.
@@ -951,7 +951,7 @@ Example:
     )
     async def bill_delete(
         bill_id: Annotated[int, Field(ge=1, description="Bill ID to delete")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Delete a bill from LibreNMS by ID.
@@ -983,7 +983,7 @@ Example:
             "idempotentHint": True,
         },
     )
-    async def devicegroups_list(ctx: Context = None) -> dict:
+    async def devicegroups_list(ctx: Context) -> dict:
         """
         List all device groups from LibreNMS.
 
@@ -1026,7 +1026,7 @@ Example dynamic group:
 {"name": "Linux Servers", "type": "dynamic", "rules": {"condition": "AND", "rules": [{"field": "os", "operator": "equal", "value": "linux"}]}}"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Add a new device group to LibreNMS.
@@ -1068,7 +1068,7 @@ Example dynamic group:
 - devices: Array of device IDs (for static groups)"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Update a device group in LibreNMS.
@@ -1100,7 +1100,7 @@ Example dynamic group:
     )
     async def devicegroup_delete(
         name: Annotated[str, Field(description="Device group name to delete")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Delete a device group from LibreNMS by name.
@@ -1130,6 +1130,7 @@ Example dynamic group:
         },
     )
     async def devicegroup_devices(
+        ctx: Context,
         name: Annotated[str, Field(description="Device group name")],
         full: Annotated[
             bool | None,
@@ -1138,7 +1139,6 @@ Example dynamic group:
                 description="Set to true to get complete device data instead of just IDs",
             ),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         List devices in a device group from LibreNMS.
@@ -1186,7 +1186,7 @@ Example dynamic group:
 - start (optional): Start time in "Y-m-d H:i:00" format (default: now)"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Set maintenance for a device group in LibreNMS.
@@ -1226,7 +1226,7 @@ Example dynamic group:
                 description='Array of device IDs to add. Format: {"devices": [1, 2, 3]}'
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Add devices to a device group in LibreNMS.
@@ -1264,7 +1264,7 @@ Example dynamic group:
                 description='Array of device IDs to remove. Format: {"devices": [1, 2, 3]}'
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Remove devices from a device group in LibreNMS.
@@ -1298,6 +1298,7 @@ Example dynamic group:
         },
     )
     async def devices_list(
+        ctx: Context,
         query: Annotated[
             dict | None,
             Field(
@@ -1313,7 +1314,6 @@ Example dynamic group:
 Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6, location, location_id, hostname, sysName, display, device_id, type, serial, version, hardware, features""",
             ),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         List devices from LibreNMS with optional filters.
@@ -1365,7 +1365,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 - ping_fallback (optional): Add as ping-only if SNMP fails"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Add a new device to LibreNMS.
@@ -1396,7 +1396,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
     )
     async def device_get(
         hostname: Annotated[str, Field(description="Device hostname")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get device details from LibreNMS by hostname.
@@ -1427,7 +1427,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
     )
     async def device_delete(
         hostname: Annotated[str, Field(description="Device hostname to delete")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Delete a device from LibreNMS by hostname.
@@ -1474,7 +1474,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 - type: Device type classification"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Update device fields in LibreNMS.
@@ -1513,6 +1513,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def device_ports(
+        ctx: Context,
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         columns: Annotated[
             str | None,
@@ -1521,7 +1522,6 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
                 description="Comma-separated list of columns to return (e.g., 'port_id,ifName,ifAlias,ifOperStatus')",
             ),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         List ports for a device from LibreNMS.
@@ -1560,7 +1560,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
     async def device_ports_get(
         hostname: Annotated[str, Field()],
         ifname: Annotated[str, Field(description="Interface name")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get port info for a device by interface name.
@@ -1593,7 +1593,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def device_availability(
-        hostname: Annotated[str, Field()], ctx: Context = None
+        hostname: Annotated[str, Field()], ctx: Context
     ) -> dict:
         """
         Get device availability from LibreNMS.
@@ -1622,9 +1622,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             "idempotentHint": True,
         },
     )
-    async def device_outages(
-        hostname: Annotated[str, Field()], ctx: Context = None
-    ) -> dict:
+    async def device_outages(hostname: Annotated[str, Field()], ctx: Context) -> dict:
         """
         Get device outages from LibreNMS.
 
@@ -1664,7 +1662,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 - start (optional): Start time in "Y-m-d H:i:00" format (default: now)"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Set device maintenance in LibreNMS.
@@ -1700,6 +1698,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def inventory_device(
+        ctx: Context,
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         ent_physical_class: Annotated[
             str | None,
@@ -1715,7 +1714,6 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
                 description="Filter by parent entity index",
             ),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         Get inventory for a device from LibreNMS.
@@ -1755,7 +1753,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def inventory_device_flat(
-        hostname: Annotated[str, Field()], ctx: Context = None
+        hostname: Annotated[str, Field()], ctx: Context
     ) -> dict:
         """
         Get flattened inventory for a device from LibreNMS.
@@ -1787,7 +1785,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             "idempotentHint": True,
         },
     )
-    async def locations_list(ctx: Context = None) -> dict:
+    async def locations_list(ctx: Context) -> dict:
         """
         List locations from LibreNMS.
 
@@ -1823,7 +1821,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 - fixed_coordinates (optional): 0 = update from device, 1 = fixed (default: 1)"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Add a new location to LibreNMS.
@@ -1854,7 +1852,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
     )
     async def location_delete(
         location: Annotated[str, Field(description="Location identifier")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Delete a location from LibreNMS by identifier.
@@ -1893,7 +1891,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 - lng: Longitude coordinate (decimal degrees)"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Edit a location in LibreNMS.
@@ -1925,9 +1923,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             "idempotentHint": True,
         },
     )
-    async def location_get(
-        location: Annotated[str, Field()], ctx: Context = None
-    ) -> dict:
+    async def location_get(location: Annotated[str, Field()], ctx: Context) -> dict:
         """
         Get a specific location from LibreNMS by identifier.
 
@@ -1959,6 +1955,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def logs_eventlog(
+        ctx: Context,
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         start: Annotated[
             int | None,
@@ -1986,7 +1983,6 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             str | None,
             Field(default=None, description="Sort order: ASC or DESC"),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         Get event logs for a device from LibreNMS.
@@ -2035,6 +2031,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def logs_syslog(
+        ctx: Context,
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         start: Annotated[
             int | None,
@@ -2062,7 +2059,6 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             str | None,
             Field(default=None, description="Sort order: ASC or DESC"),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         Get syslogs for a device from LibreNMS.
@@ -2111,6 +2107,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def logs_alertlog(
+        ctx: Context,
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         start: Annotated[
             int | None,
@@ -2138,7 +2135,6 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             str | None,
             Field(default=None, description="Sort order: ASC or DESC"),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         Get alert logs for a device from LibreNMS.
@@ -2187,6 +2183,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def logs_authlog(
+        ctx: Context,
         start: Annotated[
             int | None,
             Field(default=None, description="Page number for pagination"),
@@ -2213,7 +2210,6 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             str | None,
             Field(default=None, description="Sort order: ASC or DESC"),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         Get auth logs for a device from LibreNMS.
@@ -2268,7 +2264,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
                 description="JSON syslog message(s) to ingest into LibreNMS syslog storage. Accepts a single object or an array of objects."
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Add a syslog entry to LibreNMS via API sink.
@@ -2304,7 +2300,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         poller_group: Annotated[
             str, Field(description="Poller group identifier or 'all'")
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get poller group(s) from LibreNMS.
@@ -2336,7 +2332,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             "idempotentHint": True,
         },
     )
-    async def port_groups_list(ctx: Context = None) -> dict:
+    async def port_groups_list(ctx: Context) -> dict:
         """
         List port groups from LibreNMS.
 
@@ -2370,7 +2366,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 - desc (optional): Port group description"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Add a port group to LibreNMS.
@@ -2400,7 +2396,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def port_group_list_ports(
-        name: Annotated[str, Field(description="Port group name")], ctx: Context = None
+        name: Annotated[str, Field(description="Port group name")], ctx: Context
     ) -> dict:
         """
         List ports in a port group from LibreNMS.
@@ -2435,7 +2431,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             dict,
             Field(description='Port IDs to assign. Format: {"port_ids": [1, 2, 3]}'),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Assign ports to a port group in LibreNMS.
@@ -2473,7 +2469,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             dict,
             Field(description='Port IDs to remove. Format: {"port_ids": [1, 2, 3]}'),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Remove ports from a port group in LibreNMS.
@@ -2509,6 +2505,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def ports_list(
+        ctx: Context,
         query: Annotated[
             dict | None,
             Field(
@@ -2521,7 +2518,6 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed, ifOperStatus, ifAdminStatus, etc.""",
             ),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         Get all ports from LibreNMS with optional filters.
@@ -2557,7 +2553,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
                 description="Search string - searches ifAlias, ifDescr, and ifName fields"
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Search ports in LibreNMS by search string.
@@ -2594,7 +2590,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             ),
         ],
         search: Annotated[str, Field(description="Search term")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Search ports in LibreNMS by specific field.
@@ -2631,7 +2627,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
                 description="MAC address to search. Accepts multiple formats: aa:bb:cc:dd:ee:ff, aa-bb-cc-dd-ee-ff, aabb.ccdd.eeff, or aabbccddeeff"
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Search ports in LibreNMS by MAC address.
@@ -2660,9 +2656,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             "idempotentHint": True,
         },
     )
-    async def port_get(
-        port_id: Annotated[int, Field(ge=1)], ctx: Context = None
-    ) -> dict:
+    async def port_get(port_id: Annotated[int, Field(ge=1)], ctx: Context) -> dict:
         """
         Get port info from LibreNMS by port ID.
 
@@ -2690,9 +2684,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             "idempotentHint": True,
         },
     )
-    async def port_ip_info(
-        port_id: Annotated[int, Field(ge=1)], ctx: Context = None
-    ) -> dict:
+    async def port_ip_info(port_id: Annotated[int, Field(ge=1)], ctx: Context) -> dict:
         """
         Get port IP info from LibreNMS by port ID.
 
@@ -2721,7 +2713,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         },
     )
     async def port_transceiver(
-        port_id: Annotated[int, Field(ge=1)], ctx: Context = None
+        port_id: Annotated[int, Field(ge=1)], ctx: Context
     ) -> dict:
         """
         Get port transceiver info from LibreNMS by port ID.
@@ -2751,7 +2743,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         },
     )
     async def port_description_get(
-        port_id: Annotated[int, Field(ge=1)], ctx: Context = None
+        port_id: Annotated[int, Field(ge=1)], ctx: Context
     ) -> dict:
         """
         Get port description from LibreNMS by port ID.
@@ -2781,6 +2773,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         },
     )
     async def port_description_update(
+        ctx: Context,
         port_id: Annotated[int, Field(ge=1, description="Port ID")],
         payload: Annotated[
             dict,
@@ -2788,7 +2781,6 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
                 description='Port description payload. Format: {"description": "new description"}'
             ),
         ],
-        ctx: Context = None,
     ) -> dict:
         """
         Update port description in LibreNMS by port ID.
@@ -2822,6 +2814,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         },
     )
     async def bgp_sessions(
+        ctx: Context,
         hostname: Annotated[
             str | None,
             Field(default=None, description="Filter by device hostname"),
@@ -2863,7 +2856,6 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
                 description="Filter by address family: 4 (IPv4) or 6 (IPv6)",
             ),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         List BGP sessions from LibreNMS with optional filters.
@@ -2910,7 +2902,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         },
     )
     async def bgp_session_get(
-        bgp_id: Annotated[int, Field(ge=1)], ctx: Context = None
+        bgp_id: Annotated[int, Field(ge=1)], ctx: Context
     ) -> dict:
         """
         Get BGP session from LibreNMS by ID.
@@ -2947,7 +2939,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
                 description='BGP session payload. Format: {"bgp_descr": "description"}'
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Edit BGP session in LibreNMS by ID.
@@ -2977,7 +2969,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             "idempotentHint": True,
         },
     )
-    async def routing_ip_addresses(ctx: Context = None) -> dict:
+    async def routing_ip_addresses(ctx: Context) -> dict:
         """
         List all IP addresses from LibreNMS.
 
@@ -3006,6 +2998,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         },
     )
     async def services_list(
+        ctx: Context,
         state: Annotated[
             int | None,
             Field(
@@ -3018,7 +3011,6 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
                 default=None, description="Filter by service type (SQL LIKE pattern)"
             ),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         List all services from LibreNMS with optional filters.
@@ -3055,6 +3047,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         },
     )
     async def services_for_device(
+        ctx: Context,
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         state: Annotated[
             int | None,
@@ -3068,7 +3061,6 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
                 default=None, description="Filter by service type (SQL LIKE pattern)"
             ),
         ] = None,
-        ctx: Context = None,
     ) -> dict:
         """
         Get services for a device from LibreNMS.
@@ -3122,7 +3114,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Add a service for a device in LibreNMS.
@@ -3165,7 +3157,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
 - service_ignore: 0/1 to ignore in alerts"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Edit a service in LibreNMS by service ID.
@@ -3196,7 +3188,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
         },
     )
     async def service_delete(
-        service_id: Annotated[int, Field(ge=1)], ctx: Context = None
+        service_id: Annotated[int, Field(ge=1)], ctx: Context
     ) -> dict:
         """
         Delete a service from LibreNMS by service ID.
@@ -3228,7 +3220,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             "idempotentHint": True,
         },
     )
-    async def switching_vlans(ctx: Context = None) -> dict:
+    async def switching_vlans(ctx: Context) -> dict:
         """
         List all VLANs from LibreNMS.
 
@@ -3253,7 +3245,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             "idempotentHint": True,
         },
     )
-    async def switching_links(ctx: Context = None) -> dict:
+    async def switching_links(ctx: Context) -> dict:
         """
         List all links from LibreNMS.
 
@@ -3281,7 +3273,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             "idempotentHint": True,
         },
     )
-    async def system_info(ctx: Context = None) -> dict:
+    async def system_info(ctx: Context) -> dict:
         """
         Get system info from LibreNMS.
 
@@ -3306,7 +3298,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             "idempotentHint": True,
         },
     )
-    async def ping(ctx: Context = None) -> dict:
+    async def ping(ctx: Context) -> dict:
         """
         Simple API health check - ping LibreNMS API.
 
@@ -3336,7 +3328,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
     )
     async def device_discover(
         hostname: Annotated[str, Field(description="Device hostname or ID")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Trigger device rediscovery in LibreNMS.
@@ -3368,7 +3360,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
     async def device_rename(
         hostname: Annotated[str, Field(description="Current device hostname or ID")],
         new_hostname: Annotated[str, Field(description="New hostname for the device")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Rename a device in LibreNMS.
@@ -3400,7 +3392,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
     )
     async def device_maintenance_status(
         hostname: Annotated[str, Field(description="Device hostname or ID")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Check if a device is currently in maintenance mode.
@@ -3431,7 +3423,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
     )
     async def device_vlans(
         hostname: Annotated[str, Field(description="Device hostname or ID")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get VLANs configured on a specific device.
@@ -3462,7 +3454,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
     )
     async def device_links(
         hostname: Annotated[str, Field(description="Device hostname or ID")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get network links for a specific device.
@@ -3502,7 +3494,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
 - severity (optional): Severity level (1-5)"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Add a custom event log entry for a device.
@@ -3542,7 +3534,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
                 description="MAC address to look up. Accepts multiple formats: aa:bb:cc:dd:ee:ff, aabb.ccdd.eeff, or aabbccddeeff"
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Look up a MAC address in the forwarding database.
@@ -3574,7 +3566,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             "idempotentHint": True,
         },
     )
-    async def ospf_list(ctx: Context = None) -> dict:
+    async def ospf_list(ctx: Context) -> dict:
         """
         List all OSPF instances from LibreNMS.
 
@@ -3599,7 +3591,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             "idempotentHint": True,
         },
     )
-    async def ospf_ports(ctx: Context = None) -> dict:
+    async def ospf_ports(ctx: Context) -> dict:
         """
         List all OSPF ports/interfaces from LibreNMS.
 
@@ -3627,7 +3619,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             "idempotentHint": True,
         },
     )
-    async def vrf_list(ctx: Context = None) -> dict:
+    async def vrf_list(ctx: Context) -> dict:
         """
         List all VRF (Virtual Routing and Forwarding) instances from LibreNMS.
 
@@ -3667,7 +3659,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
 - start (optional): Start time in "Y-m-d H:i:00" format (default: now)"""
             ),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Set maintenance mode for all devices in a location.
@@ -3705,7 +3697,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
     )
     async def health_list(
         hostname: Annotated[str, Field(description="Device hostname or ID")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         List available health graphs for a device.
@@ -3740,7 +3732,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             str,
             Field(description="Sensor type (e.g. temperature, voltage, fanspeed)"),
         ],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get health data by sensor type for a device.
@@ -3779,7 +3771,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             Field(description="Sensor type (e.g. temperature, voltage, fanspeed)"),
         ],
         sensor_id: Annotated[int, Field(ge=1, description="Sensor ID")],
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         Get a specific sensor by ID for a device.
@@ -3815,7 +3807,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
         },
     )
     async def sensors_list(
-        ctx: Context = None,
+        ctx: Context,
     ) -> dict:
         """
         List all sensors across all devices.

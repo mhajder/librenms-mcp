@@ -121,9 +121,18 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
             tag.strip() for tag in disabled_tags_str.split(",") if tag.strip()
         }
 
+    # Get required config values
+    librenms_url = os.getenv("LIBRENMS_URL")
+    if not librenms_url:
+        raise ValueError("LIBRENMS_URL environment variable is required")
+
+    token = os.getenv("LIBRENMS_TOKEN")
+    if not token:
+        raise ValueError("LIBRENMS_TOKEN environment variable is required")
+
     return LibreNMSConfig(
-        librenms_url=os.getenv("LIBRENMS_URL"),
-        token=os.getenv("LIBRENMS_TOKEN"),
+        librenms_url=librenms_url,
+        token=token,
         verify_ssl=parse_bool(os.getenv("LIBRENMS_VERIFY_SSL"), default=True),
         timeout=int(os.getenv("LIBRENMS_TIMEOUT", "30")),
         read_only_mode=parse_bool(os.getenv("READ_ONLY_MODE"), default=False),
