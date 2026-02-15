@@ -44,6 +44,12 @@ repos:
         language: unsupported
         types: [ python ]
 
+      - id: local-ty-check
+        name: ty check
+        entry: uv run ty check . --ignore unresolved-import
+        language: unsupported
+        types: [ python ]
+
       - id: local-commitizen
         name: commitizen check
         entry: uv run cz check --allow-abort --commit-msg-file
