@@ -95,10 +95,13 @@ class LibreNMSClient:
         return await self.request("PUT", path, data=data)
 
     async def delete(
-        self, path: str, params: dict[str, Any] | None = None
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Perform a DELETE request to a LibreNMS API path."""
-        return await self.request("DELETE", path, params=params)
+        return await self.request("DELETE", path, params=params, data=data)
 
     async def patch(
         self, path: str, data: dict[str, Any] | None = None

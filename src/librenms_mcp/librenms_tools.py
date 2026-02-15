@@ -1280,9 +1280,7 @@ Example dynamic group:
             await ctx.info(f"Removing devices from group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.delete(
-                    f"devicegroups/{name}/devices", params=payload
-                )
+                return await client.delete(f"devicegroups/{name}/devices", data=payload)
 
         except Exception as e:
             await ctx.error(f"Error removing devices from group {name}: {e!s}")
