@@ -2187,7 +2187,6 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         },
     )
     async def logs_authlog(
-        hostname: Annotated[str, Field(description="Device hostname or ID")],
         start: Annotated[
             int | None,
             Field(default=None, description="Page number for pagination"),
@@ -2243,15 +2242,15 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             params["sortorder"] = sortorder
 
         try:
-            await ctx.info(f"Getting auth logs for {hostname}...")
+            await ctx.info("Getting auth logs ...")
 
             async with LibreNMSClient(config) as client:
                 return await client.get(
-                    f"logs/authlog/{hostname}", params=params if params else None
+                    "logs/authlog", params=params if params else None
                 )
 
         except Exception as e:
-            await ctx.error(f"Error authlog {hostname}: {e!s}")
+            await ctx.error(f"Error authlog: {e!s}")
             return {"error": str(e)}
 
     @mcp.tool(
