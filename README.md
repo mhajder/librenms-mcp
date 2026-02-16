@@ -132,8 +132,11 @@ uv run pytest --cov=src/
 uv run ruff check .
 uv run ruff format .
 
+# Run type checking
+uv run ty check .
+
 # Setup pre-commit hooks
-uv run pre-commit install
+uv run prek install
 ```
 
 ## Configuration
