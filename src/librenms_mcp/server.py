@@ -19,8 +19,8 @@ from librenms_mcp.librenms_client import get_librenms_config_from_env
 from librenms_mcp.librenms_client import get_transport_config_from_env
 from librenms_mcp.librenms_middlewares import DisabledTagsMiddleware
 from librenms_mcp.librenms_middlewares import ReadOnlyTagMiddleware
-from librenms_mcp.librenms_tools import register_tools
 from librenms_mcp.sentry_init import init_sentry
+from librenms_mcp.tools import register_tools
 
 # Load environment variables
 load_dotenv()
