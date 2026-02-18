@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.7.0](https://github.com/mhajder/librenms-mcp/compare/v1.6.0...v1.7.0) (2026-02-18)
+
+
+### 🚀 Features
+
+* add 'ty' typechecker and resolve typing issues ([#30](https://github.com/mhajder/librenms-mcp/issues/30)) ([9d894d4](https://github.com/mhajder/librenms-mcp/commit/9d894d495047d63b304b8d22d22504626c35f001))
+* add alert template management tools ([#13](https://github.com/mhajder/librenms-mcp/issues/13)) ([0aa6ed2](https://github.com/mhajder/librenms-mcp/commit/0aa6ed2d018e1fc1abf244477650bd2c888d13f7))
+* add global-read/admin tags to tools ([#28](https://github.com/mhajder/librenms-mcp/issues/28)) ([47bcf84](https://github.com/mhajder/librenms-mcp/commit/47bcf84c7d7bb9b6d0e1699b1329bd6902462588))
+* adds env vars in server.json ([#34](https://github.com/mhajder/librenms-mcp/issues/34)) ([90c0a4f](https://github.com/mhajder/librenms-mcp/commit/90c0a4f723fd2323ac198612a56f6ec5de3e444a))
+* improves API request handling and endpoints ([#27](https://github.com/mhajder/librenms-mcp/issues/27)) ([56090d6](https://github.com/mhajder/librenms-mcp/commit/56090d69d0ff4cc24a7b1d589a66ddc67158aa3b))
+* refactors CI to isolate MCP Registry publishing ([#16](https://github.com/mhajder/librenms-mcp/issues/16)) ([7e81a63](https://github.com/mhajder/librenms-mcp/commit/7e81a6325912b0e80318031c9f225179f3911a78))
+
+
+### 🐛 Bug Fixes
+
+* transform device_update payload to LibreNMS API field/data format ([#19](https://github.com/mhajder/librenms-mcp/issues/19)) ([d0a602f](https://github.com/mhajder/librenms-mcp/commit/d0a602f9080681478130168286a419a6fd760508))
+* update healthcheck command to use nc for service availability ([#21](https://github.com/mhajder/librenms-mcp/issues/21)) ([0718374](https://github.com/mhajder/librenms-mcp/commit/0718374df1ad8a7c3cff854b495ad309ed8d0ce4))
+* use GET instead of POST for device_discover endpoint ([#14](https://github.com/mhajder/librenms-mcp/issues/14)) ([14338b2](https://github.com/mhajder/librenms-mcp/commit/14338b200b619888bc57bc923700d863d835878b))
+
+
+### 🧹 Refactoring
+
+* **tools:** split monolithic tools into modules ([#32](https://github.com/mhajder/librenms-mcp/issues/32)) ([d108518](https://github.com/mhajder/librenms-mcp/commit/d108518f810232bd038beafa7bec588d2c6243d1))
+
+
+### 📚 Documentation
+
+* add missing tools ([#18](https://github.com/mhajder/librenms-mcp/issues/18)) ([7bc6ece](https://github.com/mhajder/librenms-mcp/commit/7bc6ece8a800b4836c5199fe88e1f287829aa8c2))
+* Updates README dev commands ([#31](https://github.com/mhajder/librenms-mcp/issues/31)) ([8d4b28f](https://github.com/mhajder/librenms-mcp/commit/8d4b28fea68676c7dcf7506f2bac8b797955de9e))
+
 ## [1.6.0](https://github.com/mhajder/librenms-mcp/compare/v1.5.0...v1.6.0) (2026-02-04)
 
 
