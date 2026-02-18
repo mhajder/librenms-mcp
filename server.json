@@ -32,9 +32,58 @@
           "isSecret": true
         },
         {
-          "name": "LIBRENMS_READ_ONLY",
-          "description": "Enable read-only mode to restrict write operations",
+          "name": "LIBRENMS_VERIFY_SSL",
+          "description": "Verify TLS certificates for LibreNMS requests (true/false)",
+          "default": "true",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LIBRENMS_TIMEOUT",
+          "description": "HTTP timeout for LibreNMS API requests in seconds",
+          "default": "30",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "READ_ONLY_MODE",
+          "description": "Enable read-only mode to block write operations",
           "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "DISABLED_TAGS",
+          "description": "Comma-separated tool tags to disable (e.g., alerts,bills)",
+          "default": "",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LOG_LEVEL",
+          "description": "Logging level (DEBUG, INFO, WARNING, ERROR)",
+          "default": "INFO",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RATE_LIMIT_ENABLED",
+          "description": "Enable per-client rate limiting (true/false)",
+          "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RATE_LIMIT_MAX_REQUESTS",
+          "description": "Maximum requests allowed per rate-limit window",
+          "default": "100",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RATE_LIMIT_WINDOW_MINUTES",
+          "description": "Rate-limit window duration in minutes",
+          "default": "1",
           "isRequired": false,
           "isSecret": false
         }
@@ -63,9 +112,58 @@
           "isSecret": true
         },
         {
-          "name": "LIBRENMS_READ_ONLY",
-          "description": "Enable read-only mode to restrict write operations",
+          "name": "LIBRENMS_VERIFY_SSL",
+          "description": "Verify TLS certificates for LibreNMS requests (true/false)",
+          "default": "true",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LIBRENMS_TIMEOUT",
+          "description": "HTTP timeout for LibreNMS API requests in seconds",
+          "default": "30",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "READ_ONLY_MODE",
+          "description": "Enable read-only mode to block write operations",
           "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "DISABLED_TAGS",
+          "description": "Comma-separated tool tags to disable (e.g., alerts,bills)",
+          "default": "",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LOG_LEVEL",
+          "description": "Logging level (DEBUG, INFO, WARNING, ERROR)",
+          "default": "INFO",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RATE_LIMIT_ENABLED",
+          "description": "Enable per-client rate limiting (true/false)",
+          "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RATE_LIMIT_MAX_REQUESTS",
+          "description": "Maximum requests allowed per rate-limit window",
+          "default": "100",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RATE_LIMIT_WINDOW_MINUTES",
+          "description": "Rate-limit window duration in minutes",
+          "default": "1",
           "isRequired": false,
           "isSecret": false
         },
@@ -75,6 +173,12 @@
           "default": "8000",
           "isRequired": false,
           "isSecret": false
+        },
+        {
+          "name": "MCP_HTTP_BEARER_TOKEN",
+          "description": "Optional bearer token for HTTP transport authentication",
+          "isRequired": false,
+          "isSecret": true
         },
         {
           "name": "MCP_TRANSPORT",
@@ -96,7 +200,7 @@
         {
           "type": "named",
           "name": "-p",
-          "value": "{MCP_HTTP_PORT}:8000",
+          "value": "{MCP_HTTP_PORT}:{MCP_HTTP_PORT}",
           "description": "Port mapping for HTTP transport",
           "isRequired": true
         }
@@ -115,9 +219,111 @@
           "isSecret": true
         },
         {
-          "name": "LIBRENMS_READ_ONLY",
-          "description": "Enable read-only mode to restrict write operations",
+          "name": "LIBRENMS_VERIFY_SSL",
+          "description": "Verify TLS certificates for LibreNMS requests (true/false)",
+          "default": "true",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LIBRENMS_TIMEOUT",
+          "description": "HTTP timeout for LibreNMS API requests in seconds",
+          "default": "30",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "READ_ONLY_MODE",
+          "description": "Enable read-only mode to block write operations",
           "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "DISABLED_TAGS",
+          "description": "Comma-separated tool tags to disable (e.g., alerts,bills)",
+          "default": "",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LOG_LEVEL",
+          "description": "Logging level (DEBUG, INFO, WARNING, ERROR)",
+          "default": "INFO",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RATE_LIMIT_ENABLED",
+          "description": "Enable per-client rate limiting (true/false)",
+          "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RATE_LIMIT_MAX_REQUESTS",
+          "description": "Maximum requests allowed per rate-limit window",
+          "default": "100",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RATE_LIMIT_WINDOW_MINUTES",
+          "description": "Rate-limit window duration in minutes",
+          "default": "1",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "SENTRY_DSN",
+          "description": "Sentry DSN for optional error tracking",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "SENTRY_TRACES_SAMPLE_RATE",
+          "description": "Sentry traces sample rate (0.0-1.0)",
+          "default": "1.0",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "SENTRY_SEND_DEFAULT_PII",
+          "description": "Allow Sentry to include default PII in events (true/false)",
+          "default": "true",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "SENTRY_ENVIRONMENT",
+          "description": "Sentry environment name (e.g., production)",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "SENTRY_RELEASE",
+          "description": "Sentry release identifier",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "SENTRY_PROFILE_SESSION_SAMPLE_RATE",
+          "description": "Sentry profile session sample rate (0.0-1.0)",
+          "default": "1.0",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "SENTRY_PROFILE_LIFECYCLE",
+          "description": "Sentry profiling lifecycle mode",
+          "default": "trace",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "SENTRY_ENABLE_LOGS",
+          "description": "Enable Sentry log capture integration (true/false)",
+          "default": "true",
           "isRequired": false,
           "isSecret": false
         },
@@ -125,6 +331,19 @@
           "name": "MCP_HTTP_PORT",
           "description": "Port for HTTP server (default: 8000)",
           "default": "8000",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "MCP_HTTP_BEARER_TOKEN",
+          "description": "Optional bearer token for HTTP transport authentication",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "MCP_TRANSPORT",
+          "description": "MCP transport type (http for HTTP, stdio for stdio)",
+          "value": "http",
           "isRequired": false,
           "isSecret": false
         }
