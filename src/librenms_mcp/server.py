@@ -17,8 +17,6 @@ from fastmcp.server.middleware.rate_limiting import SlidingWindowRateLimitingMid
 
 from librenms_mcp.librenms_client import get_librenms_config_from_env
 from librenms_mcp.librenms_client import get_transport_config_from_env
-from librenms_mcp.librenms_middlewares import DisabledTagsMiddleware
-from librenms_mcp.librenms_middlewares import ReadOnlyTagMiddleware
 from librenms_mcp.sentry_init import init_sentry
 from librenms_mcp.tools import register_tools
 
@@ -75,17 +73,26 @@ mcp = FastMCP(
 # Register all tools
 register_tools(mcp, LNMS_CONFIG)
 
-# Apply disabled tags middleware if any tags are disabled
-if getattr(LNMS_CONFIG, "disabled_tags", set()):
-    logger.info(
-        f"Disabled tags configured: {LNMS_CONFIG.disabled_tags} - applying middleware"
-    )
-    mcp.add_middleware(DisabledTagsMiddleware(LNMS_CONFIG.disabled_tags))
 
-# Enforce read-only behavior via middleware
-if getattr(LNMS_CONFIG, "read_only_mode", False):
-    logger.info("Read-only mode is enabled - applying middleware")
-    mcp.add_middleware(ReadOnlyTagMiddleware())
+def configure_component_visibility() -> None:
+    """Apply server-level visibility transforms for read-only and disabled tags."""
+
+    disabled_tags = getattr(LNMS_CONFIG, "disabled_tags", set())
+    read_only_mode = getattr(LNMS_CONFIG, "read_only_mode", False)
+
+    if read_only_mode:
+        logger.info("Read-only mode is enabled - restricting to read-only components")
+        mcp.enable(tags={"read-only"}, only=True)
+
+    if disabled_tags:
+        logger.info(
+            "Disabled tags configured: %s - disabling matching components",
+            disabled_tags,
+        )
+        mcp.disable(tags=disabled_tags)
+
+
+configure_component_visibility()
 
 # Optional rate limiting
 if getattr(LNMS_CONFIG, "rate_limit_enabled", False):
