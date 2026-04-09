@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.8.0](https://github.com/mhajder/librenms-mcp/compare/v1.7.0...v1.8.0) (2026-04-09)
+
+
+### 🚀 Features
+
+* add optional tool search transform support ([#75](https://github.com/mhajder/librenms-mcp/issues/75)) ([1d6be59](https://github.com/mhajder/librenms-mcp/commit/1d6be59185adcc91863b7a266f16b98ac51c763a))
+
+
+### 🧹 Refactoring
+
+* replace tag middleware with component visibility ([#73](https://github.com/mhajder/librenms-mcp/issues/73)) ([6436f39](https://github.com/mhajder/librenms-mcp/commit/6436f392a70c8aa57626175be5adfdfef58bfe4c))
+
 ## [1.7.0](https://github.com/mhajder/librenms-mcp/compare/v1.6.0...v1.7.0) (2026-02-18)
 
 
