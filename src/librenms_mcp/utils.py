@@ -1,7 +1,7 @@
 TRUTHY_VALUES = ("1", "true", "yes", "on")
 
 
-def parse_bool(val, default=True):
+def parse_bool(val: str | None, default: bool = True) -> bool:
     """
     Convert a value to boolean.
 

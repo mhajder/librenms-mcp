@@ -1,6 +1,7 @@
 import logging
 import os
 from typing import Any
+from typing import Literal
 
 import httpx
 
@@ -130,6 +131,11 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
     if not token:
         raise ValueError("LIBRENMS_TOKEN environment variable is required")
 
+    raw_tool_search_strategy = os.getenv("TOOL_SEARCH_STRATEGY", "bm25").lower()
+    tool_search_strategy: Literal["bm25", "regex"] = (
+        "regex" if raw_tool_search_strategy == "regex" else "bm25"
+    )
+
     return LibreNMSConfig(
         librenms_url=librenms_url,
         token=token,
@@ -140,6 +146,9 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
         rate_limit_enabled=parse_bool(os.getenv("RATE_LIMIT_ENABLED"), default=False),
         rate_limit_max_requests=int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "60")),
         rate_limit_window_minutes=int(os.getenv("RATE_LIMIT_WINDOW_MINUTES", "1")),
+        tool_search_enabled=parse_bool(os.getenv("TOOL_SEARCH_ENABLED"), default=False),
+        tool_search_strategy=tool_search_strategy,
+        tool_search_max_results=int(os.getenv("TOOL_SEARCH_MAX_RESULTS", "5")),
     )
 
 
