@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.0](https://github.com/mhajder/librenms-mcp/compare/v1.8.0...v1.9.0) (2026-04-15)
+
+
+### 🚀 Features
+
+* add Oxidized config backup tools ([#79](https://github.com/mhajder/librenms-mcp/issues/79)) ([8911a1f](https://github.com/mhajder/librenms-mcp/commit/8911a1fa786b051a36317ce8e72b88b317788047))
+
 ## [1.8.0](https://github.com/mhajder/librenms-mcp/compare/v1.7.0...v1.8.0) (2026-04-09)
 
 
