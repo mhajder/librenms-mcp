@@ -3,6 +3,7 @@ LibreNMS MCP Server Oxidized Tools
 """
 
 from typing import Annotated
+from urllib.parse import quote
 
 from fastmcp.server.context import Context
 from pydantic import Field
@@ -44,7 +45,9 @@ def register_oxidized_tools(mcp, config):
             await ctx.info("Listing Oxidized devices...")
 
             async with LibreNMSClient(config) as client:
-                path = f"oxidized/{hostname}" if hostname else "oxidized"
+                path = (
+                    f"oxidized/{quote(hostname, safe='')}" if hostname else "oxidized"
+                )
                 result = await client.get(path)
                 if isinstance(result, list):
                     return {"devices": result}
@@ -79,7 +82,7 @@ def register_oxidized_tools(mcp, config):
             await ctx.info(f"Getting Oxidized config for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"oxidized/config/{hostname}")
+                result = await client.get(f"oxidized/config/{quote(hostname, safe='')}")
                 if isinstance(result, list):
                     return {"configs": result}
                 return result
@@ -118,7 +121,9 @@ def register_oxidized_tools(mcp, config):
             await ctx.info(f"Searching Oxidized configs for '{search}'...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"oxidized/config/search/{search}")
+                result = await client.get(
+                    f"oxidized/config/search/{quote(search, safe='')}"
+                )
                 if isinstance(result, list):
                     return {"results": result}
                 return result

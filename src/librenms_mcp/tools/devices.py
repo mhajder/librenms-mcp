@@ -528,7 +528,9 @@ Example dynamic group:
             await ctx.info(f"Updating device group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.patch(f"devicegroups/{name}", data=payload)
+                return await client.patch(
+                    f"devicegroups/{quote(name, safe='')}", data=payload
+                )
 
         except Exception as e:
             await ctx.error(f"Error updating device group {name}: {e!s}")
@@ -559,7 +561,7 @@ Example dynamic group:
             await ctx.info(f"Deleting device group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.delete(f"devicegroups/{name}")
+                return await client.delete(f"devicegroups/{quote(name, safe='')}")
 
         except Exception as e:
             await ctx.error(f"Error deleting device group {name}: {e!s}")
@@ -603,7 +605,8 @@ Example dynamic group:
 
             async with LibreNMSClient(config) as client:
                 return await client.get(
-                    f"devicegroups/{name}", params=params if params else None
+                    f"devicegroups/{quote(name, safe='')}",
+                    params=params if params else None,
                 )
 
         except Exception as e:
@@ -647,7 +650,7 @@ Example dynamic group:
 
             async with LibreNMSClient(config) as client:
                 return await client.post(
-                    f"devicegroups/{name}/maintenance", data=payload
+                    f"devicegroups/{quote(name, safe='')}/maintenance", data=payload
                 )
 
         except Exception as e:
@@ -686,7 +689,9 @@ Example dynamic group:
             await ctx.info(f"Adding devices to group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.post(f"devicegroups/{name}/devices", data=payload)
+                return await client.post(
+                    f"devicegroups/{quote(name, safe='')}/devices", data=payload
+                )
 
         except Exception as e:
             await ctx.error(f"Error adding devices to group {name}: {e!s}")
@@ -724,7 +729,9 @@ Example dynamic group:
             await ctx.info(f"Removing devices from group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.delete(f"devicegroups/{name}/devices", data=payload)
+                return await client.delete(
+                    f"devicegroups/{quote(name, safe='')}/devices", data=payload
+                )
 
         except Exception as e:
             await ctx.error(f"Error removing devices from group {name}: {e!s}")
@@ -792,7 +799,9 @@ Example dynamic group:
             await ctx.info(f"Renaming device {hostname} to {new_hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.patch(f"devices/{hostname}/rename/{new_hostname}")
+                return await client.patch(
+                    f"devices/{quote(hostname, safe='')}/rename/{quote(new_hostname, safe='')}"
+                )
 
         except Exception as e:
             await ctx.error(f"Error renaming device {hostname}: {e!s}")

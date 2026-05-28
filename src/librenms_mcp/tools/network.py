@@ -4,6 +4,7 @@ LibreNMS MCP Server Network Tools
 
 from typing import Annotated
 from typing import Any
+from urllib.parse import quote
 
 from fastmcp.server.context import Context
 from pydantic import Field
@@ -47,7 +48,7 @@ def register_network_tools(mcp, config):
             await ctx.info(f"Searching ARP entries with query: {query}")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"resources/ip/arp/{query}")
+                return await client.get(f"resources/ip/arp/{quote(query, safe='')}")
 
         except Exception as e:
             await ctx.error(f"Error ARP search {query}: {e!s}")
@@ -326,7 +327,7 @@ def register_network_tools(mcp, config):
             await ctx.info(f"Looking up FDB entry for MAC {mac}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"resources/fdb/{mac}")
+                return await client.get(f"resources/fdb/{quote(mac, safe='')}")
 
         except Exception as e:
             await ctx.error(f"Error looking up FDB for {mac}: {e!s}")

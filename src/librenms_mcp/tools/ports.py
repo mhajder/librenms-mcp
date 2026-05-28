@@ -3,6 +3,7 @@ LibreNMS MCP Server Port Tools
 """
 
 from typing import Annotated
+from urllib.parse import quote
 
 from fastmcp.server.context import Context
 from pydantic import Field
@@ -88,7 +89,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Searching ports {search}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"ports/search/{search}")
+                return await client.get(f"ports/search/{quote(search, safe='')}")
 
         except Exception as e:
             await ctx.error(f"Error searching ports {search}: {e!s}")
@@ -126,7 +127,9 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Searching ports {field}={search}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"ports/search/{field}/{search}")
+                return await client.get(
+                    f"ports/search/{quote(field, safe='')}/{quote(search, safe='')}"
+                )
 
         except Exception as e:
             await ctx.error(f"Error field search {field}={search}: {e!s}")
@@ -162,7 +165,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Searching ports by MAC address {mac}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"ports/mac/{mac}")
+                return await client.get(f"ports/mac/{quote(mac, safe='')}")
 
         except Exception as e:
             await ctx.error(f"Error MAC search {mac}: {e!s}")
@@ -413,7 +416,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Getting ports in group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"port_groups/{name}")
+                return await client.get(f"port_groups/{quote(name, safe='')}")
 
         except Exception as e:
             await ctx.error(f"Error listing ports in group {name}: {e!s}")
