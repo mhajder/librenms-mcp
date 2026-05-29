@@ -29,7 +29,7 @@ def register_alert_tools(mcp, config):
     async def alerts_get(
         ctx: Context,
         state: Annotated[
-            int | None,
+            int | str | None,
             Field(
                 default=None,
                 description="Filter the alerts by state: 0 = ok, 1 = alert, 2 = ack. Optional.",
@@ -43,7 +43,7 @@ def register_alert_tools(mcp, config):
             ),
         ] = None,
         alert_rule: Annotated[
-            int | None,
+            int | str | None,
             Field(
                 default=None, description="Filter alerts by alert rule ID. Optional."
             ),

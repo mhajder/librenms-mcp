@@ -93,11 +93,11 @@ def register_network_tools(mcp, config):
             Field(default=None, description="Filter by device hostname"),
         ] = None,
         asn: Annotated[
-            int | None,
+            int | str | None,
             Field(default=None, description="Filter by local ASN"),
         ] = None,
         remote_asn: Annotated[
-            int | None,
+            int | str | None,
             Field(default=None, description="Filter by remote ASN"),
         ] = None,
         remote_address: Annotated[
@@ -123,7 +123,7 @@ def register_network_tools(mcp, config):
             ),
         ] = None,
         bgp_family: Annotated[
-            int | None,
+            int | str | None,
             Field(
                 default=None,
                 description="Filter by address family: 4 (IPv4) or 6 (IPv6)",

@@ -37,7 +37,7 @@ def register_inventory_tools(mcp, config):
             ),
         ] = None,
         ent_physical_contained_in: Annotated[
-            int | None,
+            int | str | None,
             Field(
                 default=None,
                 description="Filter by parent entity index",
