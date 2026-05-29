@@ -10,6 +10,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import paginate_list
 
 
 def register_device_tools(mcp, config):
@@ -37,12 +38,27 @@ def register_device_tools(mcp, config):
 - {"type": "os", "query": "linux"} - filter by operating system
 - {"type": "location", "query": "datacenter"} - filter by location
 - {"type": "up"} or {"type": "down"} - filter by status
-- {"limit": 50} - limit number of results
 - {"order": "hostname ASC"} - sort results
 
 Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6, location, location_id, hostname, sysName, display, device_id, type, serial, version, hardware, features""",
             ),
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         List devices from LibreNMS with optional filters.
@@ -51,6 +67,8 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             query (dict, optional): Query parameters for filtering. Use "type" to filter
                 by category (hostname, os, location, up, down, etc.) and "query" for
                 the search term. Can also include "limit" and "order".
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API containing device list.
@@ -59,7 +77,8 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info("Listing devices...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("devices", params=query)
+                result = await client.get("devices", params=query)
+            return paginate_list(result, limit, offset, key="devices")
 
         except Exception as e:
             await ctx.error(f"Error listing devices: {e!s}")
@@ -251,6 +270,22 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
                 description="Comma-separated list of columns to return (e.g., 'port_id,ifName,ifAlias,ifOperStatus')",
             ),
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         List ports for a device from LibreNMS.
@@ -258,6 +293,8 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         Args:
             hostname (str): Device hostname or ID.
             columns (str, optional): Comma-separated columns to return.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -270,9 +307,10 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info(f"Listing ports for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
+                result = await client.get(
                     f"devices/{hostname}/ports", params=params if params else None
                 )
+            return paginate_list(result, limit, offset, key="ports")
 
         except Exception as e:
             await ctx.error(f"Error listing ports for {hostname}: {e!s}")
@@ -351,12 +389,33 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             "idempotentHint": True,
         },
     )
-    async def device_outages(hostname: Annotated[str, Field()], ctx: Context) -> dict:
+    async def device_outages(
+        hostname: Annotated[str, Field()],
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         Get device outages from LibreNMS.
 
         Args:
             hostname (str): Device hostname.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -365,7 +424,8 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info(f"Getting outages for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"devices/{hostname}/outages")
+                result = await client.get(f"devices/{hostname}/outages")
+            return paginate_list(result, limit, offset, key="outages")
 
         except Exception as e:
             await ctx.error(f"Error outages {hostname}: {e!s}")
@@ -427,7 +487,25 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             "idempotentHint": True,
         },
     )
-    async def devicegroups_list(ctx: Context) -> dict:
+    async def devicegroups_list(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List all device groups from LibreNMS.
 
@@ -438,7 +516,8 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info("Getting device groups...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("devicegroups")
+                result = await client.get("devicegroups")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing device groups: {e!s}")
@@ -585,6 +664,22 @@ Example dynamic group:
                 description="Set to true to get complete device data instead of just IDs",
             ),
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         List devices in a device group from LibreNMS.
@@ -592,6 +687,8 @@ Example dynamic group:
         Args:
             name (str): Device group name.
             full (bool, optional): If true, returns full device details.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -604,10 +701,11 @@ Example dynamic group:
             await ctx.info(f"Listing devices in group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
+                result = await client.get(
                     f"devicegroups/{quote(name, safe='')}",
                     params=params if params else None,
                 )
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing devices in group {name}: {e!s}")
@@ -849,12 +947,30 @@ Example dynamic group:
     async def device_vlans(
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Get VLANs configured on a specific device.
 
         Args:
             hostname (str): Device hostname or ID.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -863,7 +979,8 @@ Example dynamic group:
             await ctx.info(f"Getting VLANs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"devices/{hostname}/vlans")
+                result = await client.get(f"devices/{hostname}/vlans")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error getting VLANs for {hostname}: {e!s}")
@@ -880,12 +997,30 @@ Example dynamic group:
     async def device_links(
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Get network links for a specific device.
 
         Args:
             hostname (str): Device hostname or ID.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -894,7 +1029,8 @@ Example dynamic group:
             await ctx.info(f"Getting links for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"devices/{hostname}/links")
+                result = await client.get(f"devices/{hostname}/links")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error getting links for {hostname}: {e!s}")

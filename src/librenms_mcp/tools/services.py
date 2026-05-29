@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import paginate_list
 
 
 def register_service_tools(mcp, config):
@@ -39,6 +40,22 @@ def register_service_tools(mcp, config):
                 default=None, description="Filter by service type (SQL LIKE pattern)"
             ),
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         List all services from LibreNMS with optional filters.
@@ -46,6 +63,8 @@ def register_service_tools(mcp, config):
         Args:
             state (int, optional): Filter by state (0=Ok, 1=Warning, 2=Critical).
             service_type (str, optional): Filter by service type.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -60,7 +79,8 @@ def register_service_tools(mcp, config):
             await ctx.info("Listing services...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("services", params=params if params else None)
+                result = await client.get("services", params=params if params else None)
+            return paginate_list(result, limit, offset, key="services")
 
         except Exception as e:
             await ctx.error(f"Error listing services: {e!s}")
@@ -89,6 +109,22 @@ def register_service_tools(mcp, config):
                 default=None, description="Filter by service type (SQL LIKE pattern)"
             ),
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Get services for a device from LibreNMS.
@@ -97,6 +133,8 @@ def register_service_tools(mcp, config):
             hostname (str): Device hostname or ID.
             state (int, optional): Filter by state (0=Ok, 1=Warning, 2=Critical).
             service_type (str, optional): Filter by service type.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -111,9 +149,10 @@ def register_service_tools(mcp, config):
             await ctx.info(f"Getting services for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
+                result = await client.get(
                     f"services/{hostname}", params=params if params else None
                 )
+            return paginate_list(result, limit, offset, key="services")
 
         except Exception as e:
             await ctx.error(f"Error services for {hostname}: {e!s}")

@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import paginate_list
 
 
 def register_alert_tools(mcp, config):
@@ -54,6 +55,22 @@ def register_alert_tools(mcp, config):
                 description="How to order the output, default is by timestamp (descending). Can be appended by DESC or ASC to change the order. Optional.",
             ),
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Get alerts from LibreNMS with optional filters.
@@ -63,6 +80,8 @@ def register_alert_tools(mcp, config):
             severity (str, optional): Filter the alerts by severity. Valid values: ok, warning, critical.
             alert_rule (int, optional): Filter alerts by alert rule ID.
             order (str, optional): How to order the output, default is by timestamp (descending). Can be appended by DESC or ASC.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -81,7 +100,8 @@ def register_alert_tools(mcp, config):
             await ctx.info("Retrieving alerts...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("alerts", params=params)
+                result = await client.get("alerts", params=params)
+            return paginate_list(result, limit, offset, key="alerts")
 
         except Exception as e:
             await ctx.error(f"Error retrieving alerts: {e!s}")
@@ -219,7 +239,25 @@ def register_alert_tools(mcp, config):
             "idempotentHint": True,
         },
     )
-    async def alert_rules_list(ctx: Context) -> dict:
+    async def alert_rules_list(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List all alert rules from LibreNMS.
 
@@ -230,7 +268,8 @@ def register_alert_tools(mcp, config):
             await ctx.info("Listing all alert rules...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("rules")
+                result = await client.get("rules")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing rules: {e!s}")
@@ -408,7 +447,25 @@ Example:
             "idempotentHint": True,
         },
     )
-    async def alert_templates_list(ctx: Context) -> dict:
+    async def alert_templates_list(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List all alert templates from LibreNMS.
 
@@ -419,7 +476,8 @@ Example:
             await ctx.info("Listing all alert templates...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("templates")
+                result = await client.get("templates")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing alert templates: {e!s}")

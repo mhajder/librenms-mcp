@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import paginate_list
 
 
 def register_oxidized_tools(mcp, config):
@@ -31,12 +32,30 @@ def register_oxidized_tools(mcp, config):
             str | None,
             Field(default=None, description="Filter by device hostname. Optional."),
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         List devices tracked by Oxidized for config backup.
 
         Args:
             hostname (str, optional): Filter by device hostname.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -50,8 +69,8 @@ def register_oxidized_tools(mcp, config):
                 )
                 result = await client.get(path)
                 if isinstance(result, list):
-                    return {"devices": result}
-                return result
+                    result = {"devices": result}
+                return paginate_list(result, limit, offset, key="devices")
 
         except Exception as e:
             await ctx.error(f"Error listing Oxidized devices: {e!s}")
@@ -107,12 +126,30 @@ def register_oxidized_tools(mcp, config):
             ),
         ],
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Search all Oxidized device configurations for a string.
 
         Args:
             search (str): Search string (IP, interface, ACL, keyword, etc.).
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API with matching devices and config snippets.
@@ -125,8 +162,8 @@ def register_oxidized_tools(mcp, config):
                     f"oxidized/config/search/{quote(search, safe='')}"
                 )
                 if isinstance(result, list):
-                    return {"results": result}
-                return result
+                    result = {"results": result}
+                return paginate_list(result, limit, offset, key="results")
 
         except Exception as e:
             await ctx.error(f"Error searching Oxidized configs: {e!s}")

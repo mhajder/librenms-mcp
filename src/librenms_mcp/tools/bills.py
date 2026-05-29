@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import paginate_list
 
 
 def register_bill_tools(mcp, config):
@@ -40,6 +41,22 @@ def register_bill_tools(mcp, config):
         custid: Annotated[
             str | None, Field(default=None, description="Customer ID filter")
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         List bills from LibreNMS with optional filters.
@@ -48,6 +65,8 @@ def register_bill_tools(mcp, config):
             period (str, optional): List previous period bills.
             ref (str, optional): Bill reference filter.
             custid (str, optional): Customer ID filter.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -64,7 +83,8 @@ def register_bill_tools(mcp, config):
             await ctx.info("Listing bills...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("bills", params=params or None)
+                result = await client.get("bills", params=params or None)
+            return paginate_list(result, limit, offset, key="bills")
 
         except Exception as e:
             await ctx.error(f"Error listing bills: {e!s}")
@@ -191,12 +211,30 @@ def register_bill_tools(mcp, config):
     async def bill_history(
         bill_id: Annotated[int, Field(ge=1)],
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Get bill history from LibreNMS.
 
         Args:
             bill_id (int): Bill ID.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -205,7 +243,8 @@ def register_bill_tools(mcp, config):
             await ctx.info(f"Getting bill history {bill_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"bills/{bill_id}/history")
+                result = await client.get(f"bills/{bill_id}/history")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error bill history {bill_id}: {e!s}")

@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import paginate_list
 
 
 def register_inventory_tools(mcp, config):
@@ -42,6 +43,22 @@ def register_inventory_tools(mcp, config):
                 description="Filter by parent entity index",
             ),
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Get inventory for a device from LibreNMS.
@@ -50,6 +67,8 @@ def register_inventory_tools(mcp, config):
             hostname (str): Device hostname or ID.
             ent_physical_class (str, optional): Filter by entity physical class.
             ent_physical_contained_in (int, optional): Filter by parent entity.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -64,9 +83,10 @@ def register_inventory_tools(mcp, config):
             await ctx.info(f"Getting inventory for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
+                result = await client.get(
                     f"inventory/{hostname}", params=params if params else None
                 )
+            return paginate_list(result, limit, offset, key="inventory")
 
         except Exception as e:
             await ctx.error(f"Error inventory {hostname}: {e!s}")
@@ -81,13 +101,32 @@ def register_inventory_tools(mcp, config):
         },
     )
     async def inventory_device_flat(
-        hostname: Annotated[str, Field()], ctx: Context
+        hostname: Annotated[str, Field()],
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Get flattened inventory for a device from LibreNMS.
 
         Args:
             hostname (str): Device hostname.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -96,7 +135,8 @@ def register_inventory_tools(mcp, config):
             await ctx.info(f"Getting flattened inventory for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"inventory/{hostname}/all")
+                result = await client.get(f"inventory/{hostname}/all")
+            return paginate_list(result, limit, offset, key="inventory")
 
         except Exception as e:
             await ctx.error(f"Error inventory flat {hostname}: {e!s}")

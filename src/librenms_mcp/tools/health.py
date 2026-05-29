@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import paginate_list
 
 
 def register_health_tools(mcp, config):
@@ -28,12 +29,30 @@ def register_health_tools(mcp, config):
     async def health_list(
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         List available health graphs for a device.
 
         Args:
             hostname (str): Device hostname or ID.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -42,7 +61,8 @@ def register_health_tools(mcp, config):
             await ctx.info(f"Getting health graphs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"devices/{hostname}/health")
+                result = await client.get(f"devices/{hostname}/health")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error getting health graphs for {hostname}: {e!s}")
@@ -63,6 +83,22 @@ def register_health_tools(mcp, config):
             Field(description="Sensor type (e.g. temperature, voltage, fanspeed)"),
         ],
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Get health data by sensor type for a device.
@@ -70,6 +106,8 @@ def register_health_tools(mcp, config):
         Args:
             hostname (str): Device hostname or ID.
             type (str): Sensor type (e.g. temperature, voltage, fanspeed).
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -78,9 +116,10 @@ def register_health_tools(mcp, config):
             await ctx.info(f"Getting {type} health data for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
+                result = await client.get(
                     f"devices/{hostname}/health/{quote(type, safe='')}"
                 )
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error getting {type} health data for {hostname}: {e!s}")
@@ -138,9 +177,29 @@ def register_health_tools(mcp, config):
     )
     async def sensors_list(
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         List all sensors across all devices.
+
+        Args:
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -149,7 +208,8 @@ def register_health_tools(mcp, config):
             await ctx.info("Listing all sensors...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("resources/sensors")
+                result = await client.get("resources/sensors")
+            return paginate_list(result, limit, offset, key="sensors")
 
         except Exception as e:
             await ctx.error(f"Error listing sensors: {e!s}")

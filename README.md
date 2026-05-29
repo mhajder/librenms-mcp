@@ -324,9 +324,22 @@ MCP_HTTP_BEARER_TOKEN=
 - `switching_links`: List all links from LibreNMS.
 - `system_info`: Get system info from LibreNMS.
 
-### General Query Tools
-
 - Flexible filtering and search for all major resources (devices, ports, alerts, logs, inventory, etc.)
+
+## Pagination & Limit Support
+
+To prevent overloading LLM contexts when querying large LibreNMS production instances, all list, search, and log tools support pagination.
+
+### Key Features
+- **Sensible Defaults**: All list tools default to returning **100 results per page**.
+- **Unified Parameters**:
+  - `limit`: The maximum number of results to return (defaults to `100`, minimum `1`).
+  - `offset` (or `start` for log tools): The number of results to skip.
+- **Pagination Metadata**: Every paginated response includes metadata fields:
+  - `limit`: The active limit.
+  - `offset` (or `start`): The active offset.
+  - `count`: The number of items returned in the current page.
+  - `total`: The total number of items available (for log tools, this is provided if returned by the LibreNMS API).
 
 ## Security & Safety Features
 

@@ -29,13 +29,21 @@ def register_logs_tools(mcp, config):
         ctx: Context,
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         start: Annotated[
-            int | None,
-            Field(default=None, description="Page number for pagination"),
-        ] = None,
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
         limit: Annotated[
-            int | None,
-            Field(default=None, description="Maximum number of results to return"),
-        ] = None,
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
         from_ts: Annotated[
             str | None,
             Field(
@@ -60,8 +68,8 @@ def register_logs_tools(mcp, config):
 
         Args:
             hostname (str): Device hostname or ID.
-            start (int, optional): Page number.
-            limit (int, optional): Max results.
+            start (int): Number of results to skip.
+            limit (int): Max results.
             from_ts (str, optional): Start timestamp.
             to_ts (str, optional): End timestamp.
             sortorder (str, optional): ASC or DESC.
@@ -69,11 +77,10 @@ def register_logs_tools(mcp, config):
         Returns:
             dict: The JSON response from the API.
         """
-        params: dict[str, Any] = {}
-        if start is not None:
-            params["start"] = start
-        if limit is not None:
-            params["limit"] = limit
+        params: dict[str, Any] = {
+            "start": start,
+            "limit": limit,
+        }
         if from_ts is not None:
             params["from"] = from_ts
         if to_ts is not None:
@@ -85,9 +92,15 @@ def register_logs_tools(mcp, config):
             await ctx.info(f"Getting event logs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
-                    f"logs/eventlog/{hostname}", params=params if params else None
-                )
+                result = await client.get(f"logs/eventlog/{hostname}", params=params)
+
+            if isinstance(result, dict) and result.get("status") == "ok":
+                list_keys = [k for k, v in result.items() if isinstance(v, list)]
+                count = len(result[list_keys[0]]) if list_keys else 0
+                result["count"] = count
+                result["limit"] = limit
+                result["start"] = start
+            return result
 
         except Exception as e:
             await ctx.error(f"Error eventlog {hostname}: {e!s}")
@@ -105,13 +118,21 @@ def register_logs_tools(mcp, config):
         ctx: Context,
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         start: Annotated[
-            int | None,
-            Field(default=None, description="Page number for pagination"),
-        ] = None,
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
         limit: Annotated[
-            int | None,
-            Field(default=None, description="Maximum number of results to return"),
-        ] = None,
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
         from_ts: Annotated[
             str | None,
             Field(
@@ -136,8 +157,8 @@ def register_logs_tools(mcp, config):
 
         Args:
             hostname (str): Device hostname or ID.
-            start (int, optional): Page number.
-            limit (int, optional): Max results.
+            start (int): Number of results to skip.
+            limit (int): Max results.
             from_ts (str, optional): Start timestamp.
             to_ts (str, optional): End timestamp.
             sortorder (str, optional): ASC or DESC.
@@ -145,11 +166,10 @@ def register_logs_tools(mcp, config):
         Returns:
             dict: The JSON response from the API.
         """
-        params: dict[str, Any] = {}
-        if start is not None:
-            params["start"] = start
-        if limit is not None:
-            params["limit"] = limit
+        params: dict[str, Any] = {
+            "start": start,
+            "limit": limit,
+        }
         if from_ts is not None:
             params["from"] = from_ts
         if to_ts is not None:
@@ -161,9 +181,15 @@ def register_logs_tools(mcp, config):
             await ctx.info(f"Getting syslogs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
-                    f"logs/syslog/{hostname}", params=params if params else None
-                )
+                result = await client.get(f"logs/syslog/{hostname}", params=params)
+
+            if isinstance(result, dict) and result.get("status") == "ok":
+                list_keys = [k for k, v in result.items() if isinstance(v, list)]
+                count = len(result[list_keys[0]]) if list_keys else 0
+                result["count"] = count
+                result["limit"] = limit
+                result["start"] = start
+            return result
 
         except Exception as e:
             await ctx.error(f"Error syslog {hostname}: {e!s}")
@@ -181,13 +207,21 @@ def register_logs_tools(mcp, config):
         ctx: Context,
         hostname: Annotated[str, Field(description="Device hostname or ID")],
         start: Annotated[
-            int | None,
-            Field(default=None, description="Page number for pagination"),
-        ] = None,
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
         limit: Annotated[
-            int | None,
-            Field(default=None, description="Maximum number of results to return"),
-        ] = None,
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
         from_ts: Annotated[
             str | None,
             Field(
@@ -212,8 +246,8 @@ def register_logs_tools(mcp, config):
 
         Args:
             hostname (str): Device hostname or ID.
-            start (int, optional): Page number.
-            limit (int, optional): Max results.
+            start (int): Number of results to skip.
+            limit (int): Max results.
             from_ts (str, optional): Start timestamp.
             to_ts (str, optional): End timestamp.
             sortorder (str, optional): ASC or DESC.
@@ -221,11 +255,10 @@ def register_logs_tools(mcp, config):
         Returns:
             dict: The JSON response from the API.
         """
-        params: dict[str, Any] = {}
-        if start is not None:
-            params["start"] = start
-        if limit is not None:
-            params["limit"] = limit
+        params: dict[str, Any] = {
+            "start": start,
+            "limit": limit,
+        }
         if from_ts is not None:
             params["from"] = from_ts
         if to_ts is not None:
@@ -237,9 +270,15 @@ def register_logs_tools(mcp, config):
             await ctx.info(f"Getting alert logs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
-                    f"logs/alertlog/{hostname}", params=params if params else None
-                )
+                result = await client.get(f"logs/alertlog/{hostname}", params=params)
+
+            if isinstance(result, dict) and result.get("status") == "ok":
+                list_keys = [k for k, v in result.items() if isinstance(v, list)]
+                count = len(result[list_keys[0]]) if list_keys else 0
+                result["count"] = count
+                result["limit"] = limit
+                result["start"] = start
+            return result
 
         except Exception as e:
             await ctx.error(f"Error alertlog {hostname}: {e!s}")
@@ -256,13 +295,21 @@ def register_logs_tools(mcp, config):
     async def logs_authlog(
         ctx: Context,
         start: Annotated[
-            int | None,
-            Field(default=None, description="Page number for pagination"),
-        ] = None,
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
         limit: Annotated[
-            int | None,
-            Field(default=None, description="Maximum number of results to return"),
-        ] = None,
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
         from_ts: Annotated[
             str | None,
             Field(
@@ -287,8 +334,8 @@ def register_logs_tools(mcp, config):
 
         Args:
             hostname (str): Device hostname or ID.
-            start (int, optional): Page number.
-            limit (int, optional): Max results.
+            start (int): Number of results to skip.
+            limit (int): Max results.
             from_ts (str, optional): Start timestamp.
             to_ts (str, optional): End timestamp.
             sortorder (str, optional): ASC or DESC.
@@ -296,11 +343,10 @@ def register_logs_tools(mcp, config):
         Returns:
             dict: The JSON response from the API.
         """
-        params: dict[str, Any] = {}
-        if start is not None:
-            params["start"] = start
-        if limit is not None:
-            params["limit"] = limit
+        params: dict[str, Any] = {
+            "start": start,
+            "limit": limit,
+        }
         if from_ts is not None:
             params["from"] = from_ts
         if to_ts is not None:
@@ -312,9 +358,15 @@ def register_logs_tools(mcp, config):
             await ctx.info("Getting auth logs ...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
-                    "logs/authlog", params=params if params else None
-                )
+                result = await client.get("logs/authlog", params=params)
+
+            if isinstance(result, dict) and result.get("status") == "ok":
+                list_keys = [k for k, v in result.items() if isinstance(v, list)]
+                count = len(result[list_keys[0]]) if list_keys else 0
+                result["count"] = count
+                result["limit"] = limit
+                result["start"] = start
+            return result
 
         except Exception as e:
             await ctx.error(f"Error authlog: {e!s}")

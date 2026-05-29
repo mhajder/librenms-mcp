@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import paginate_list
 
 
 def register_port_tools(mcp, config):
@@ -34,17 +35,34 @@ def register_port_tools(mcp, config):
                 description="""Query parameters for filtering ports:
 - columns: Comma-separated list of fields to return (e.g., "port_id,ifName,ifAlias")
 - device_id: Filter by device ID
-- limit: Maximum number of results
 
 Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed, ifOperStatus, ifAdminStatus, etc.""",
             ),
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Get all ports from LibreNMS with optional filters.
 
         Args:
             query (dict, optional): Filter parameters including columns, device_id, and limit.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API containing port list.
@@ -53,7 +71,8 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info("Getting all ports...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("ports", params=query)
+                result = await client.get("ports", params=query)
+            return paginate_list(result, limit, offset, key="ports")
 
         except Exception as e:
             await ctx.error(f"Error listing ports: {e!s}")
@@ -75,12 +94,30 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             ),
         ],
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Search ports in LibreNMS by search string.
 
         Args:
             search (str): Search term to match against ifAlias, ifDescr, ifName.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -89,7 +126,8 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Searching ports {search}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"ports/search/{quote(search, safe='')}")
+                result = await client.get(f"ports/search/{quote(search, safe='')}")
+            return paginate_list(result, limit, offset, key="ports")
 
         except Exception as e:
             await ctx.error(f"Error searching ports {search}: {e!s}")
@@ -112,6 +150,22 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         ],
         search: Annotated[str, Field(description="Search term")],
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Search ports in LibreNMS by specific field.
@@ -119,6 +173,8 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         Args:
             field (str): Field to search (ifAlias, ifDescr, ifName, etc.).
             search (str): Search term.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -127,9 +183,10 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Searching ports {field}={search}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
+                result = await client.get(
                     f"ports/search/{quote(field, safe='')}/{quote(search, safe='')}"
                 )
+            return paginate_list(result, limit, offset, key="ports")
 
         except Exception as e:
             await ctx.error(f"Error field search {field}={search}: {e!s}")
@@ -151,12 +208,30 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             ),
         ],
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Search ports in LibreNMS by MAC address.
 
         Args:
             mac (str): MAC address in any common format.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -165,7 +240,8 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Searching ports by MAC address {mac}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"ports/mac/{quote(mac, safe='')}")
+                result = await client.get(f"ports/mac/{quote(mac, safe='')}")
+            return paginate_list(result, limit, offset, key="ports")
 
         except Exception as e:
             await ctx.error(f"Error MAC search {mac}: {e!s}")
@@ -337,7 +413,25 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             "idempotentHint": True,
         },
     )
-    async def port_groups_list(ctx: Context) -> dict:
+    async def port_groups_list(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List port groups from LibreNMS.
 
@@ -348,7 +442,8 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info("Getting port groups...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("port_groups")
+                result = await client.get("port_groups")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing port groups: {e!s}")
@@ -401,13 +496,32 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         },
     )
     async def port_group_list_ports(
-        name: Annotated[str, Field(description="Port group name")], ctx: Context
+        name: Annotated[str, Field(description="Port group name")],
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         List ports in a port group from LibreNMS.
 
         Args:
             name (str): Port group name.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -416,7 +530,8 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Getting ports in group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"port_groups/{quote(name, safe='')}")
+                result = await client.get(f"port_groups/{quote(name, safe='')}")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing ports in group {name}: {e!s}")

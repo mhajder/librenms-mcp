@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import paginate_list
 
 
 def register_location_tools(mcp, config):
@@ -25,9 +26,31 @@ def register_location_tools(mcp, config):
             "idempotentHint": True,
         },
     )
-    async def locations_list(ctx: Context) -> dict:
+    async def locations_list(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List locations from LibreNMS.
+
+        Args:
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -36,7 +59,8 @@ def register_location_tools(mcp, config):
             await ctx.info("Listing locations...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("resources/locations")
+                result = await client.get("resources/locations")
+            return paginate_list(result, limit, offset, key="locations")
 
         except Exception as e:
             await ctx.error(f"Error listing locations: {e!s}")

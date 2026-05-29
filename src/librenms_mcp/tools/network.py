@@ -10,6 +10,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import paginate_list
 
 
 def register_network_tools(mcp, config):
@@ -34,12 +35,30 @@ def register_network_tools(mcp, config):
             ),
         ],
         ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         Retrieve ARP entries from LibreNMS by search query.
 
         Args:
             query (str): Search string - IP, MAC, CIDR notation, or "all".
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
 
         Returns:
             dict: The JSON response from the API.
@@ -48,7 +67,8 @@ def register_network_tools(mcp, config):
             await ctx.info(f"Searching ARP entries with query: {query}")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"resources/ip/arp/{quote(query, safe='')}")
+                result = await client.get(f"resources/ip/arp/{quote(query, safe='')}")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error ARP search {query}: {e!s}")
@@ -109,6 +129,22 @@ def register_network_tools(mcp, config):
                 description="Filter by address family: 4 (IPv4) or 6 (IPv6)",
             ),
         ] = None,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
     ) -> dict:
         """
         List BGP sessions from LibreNMS with optional filters.
@@ -140,7 +176,8 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing BGP sessions...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("bgp", params=params if params else None)
+                result = await client.get("bgp", params=params if params else None)
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing BGP sessions: {e!s}")
@@ -222,7 +259,25 @@ def register_network_tools(mcp, config):
             "idempotentHint": True,
         },
     )
-    async def routing_ip_addresses(ctx: Context) -> dict:
+    async def routing_ip_addresses(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List all IP addresses from LibreNMS.
 
@@ -233,7 +288,8 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing IP addresses...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("resources/ip/addresses")
+                result = await client.get("resources/ip/addresses")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing IP addresses: {e!s}")
@@ -251,7 +307,25 @@ def register_network_tools(mcp, config):
             "idempotentHint": True,
         },
     )
-    async def switching_vlans(ctx: Context) -> dict:
+    async def switching_vlans(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List all VLANs from LibreNMS.
 
@@ -262,7 +336,8 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing VLANs...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("resources/vlans")
+                result = await client.get("resources/vlans")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing VLANs: {e!s}")
@@ -276,7 +351,25 @@ def register_network_tools(mcp, config):
             "idempotentHint": True,
         },
     )
-    async def switching_links(ctx: Context) -> dict:
+    async def switching_links(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List all links from LibreNMS.
 
@@ -287,7 +380,8 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing links...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("resources/links")
+                result = await client.get("resources/links")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing links: {e!s}")
@@ -345,7 +439,25 @@ def register_network_tools(mcp, config):
             "idempotentHint": True,
         },
     )
-    async def ospf_list(ctx: Context) -> dict:
+    async def ospf_list(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List all OSPF instances from LibreNMS.
 
@@ -356,7 +468,8 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing OSPF instances...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("ospf")
+                result = await client.get("ospf")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing OSPF: {e!s}")
@@ -370,7 +483,25 @@ def register_network_tools(mcp, config):
             "idempotentHint": True,
         },
     )
-    async def ospf_ports(ctx: Context) -> dict:
+    async def ospf_ports(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List all OSPF ports/interfaces from LibreNMS.
 
@@ -381,7 +512,8 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing OSPF ports...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("ospf_ports")
+                result = await client.get("ospf_ports")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing OSPF ports: {e!s}")
@@ -399,7 +531,25 @@ def register_network_tools(mcp, config):
             "idempotentHint": True,
         },
     )
-    async def vrf_list(ctx: Context) -> dict:
+    async def vrf_list(
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
         """
         List all VRF (Virtual Routing and Forwarding) instances from LibreNMS.
 
@@ -410,7 +560,8 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing VRF instances...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("routing/vrf")
+                result = await client.get("routing/vrf")
+            return paginate_list(result, limit, offset)
 
         except Exception as e:
             await ctx.error(f"Error listing VRF: {e!s}")
