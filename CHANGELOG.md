@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.10.0](https://github.com/mhajder/librenms-mcp/compare/v1.9.0...v1.10.0) (2026-06-05)
+
+
+### 🚀 Features
+
+* **pagination:** implement limit and offset pagination across list tools ([#101](https://github.com/mhajder/librenms-mcp/issues/101)) ([9d72685](https://github.com/mhajder/librenms-mcp/commit/9d72685f3e1eb77c966cf8489c39137988822637))
+
+
+### 🐛 Bug Fixes
+
+* **tools:** URL-encode search queries and name parameters in API paths ([#99](https://github.com/mhajder/librenms-mcp/issues/99)) ([9ecf804](https://github.com/mhajder/librenms-mcp/commit/9ecf8046f951c974002b17ddb51f24fe8e1e70cf))
+* **types:** allow string integers in optional union parameters ([#102](https://github.com/mhajder/librenms-mcp/issues/102)) ([5d3cdf6](https://github.com/mhajder/librenms-mcp/commit/5d3cdf60d5d4cbdd45e8c6df0aa809a8166d3a1b))
+
 ## [1.9.0](https://github.com/mhajder/librenms-mcp/compare/v1.8.0...v1.9.0) (2026-04-15)
 
 
