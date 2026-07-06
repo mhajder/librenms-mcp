@@ -584,19 +584,19 @@ wheels = [
 
 [[package]]
 name = "fastmcp"
-version = "3.4.1"
+version = "3.4.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fastmcp-slim", extra = ["client", "server"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4b/61/8352e9c15dc8f4ae35379e83bde0f00638c48c223cad2cc774c85bffe143/fastmcp-3.4.1.tar.gz", hash = "sha256:d8db60bfba3d20c5e327acb7992de6aaf45a5c368c887db709ade6d098646474", size = 28755462, upload-time = "2026-06-05T15:42:56.09Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f2/92/cf0e921675af66534eb6dfffffa1871b5062f01650bcea63b62005a12f50/fastmcp-3.4.3.tar.gz", hash = "sha256:31e212ae9ff223876c6d7af2082e73f90bc692460e7a054568dfa88719f075ff", size = 28789252, upload-time = "2026-07-05T23:27:55.153Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bc/e6/402b4bc3debb80a333d03fa901c0fa17e2d92d5ddbaf769afc81a306489a/fastmcp-3.4.1-py3-none-any.whl", hash = "sha256:bbd7bb531c09837f857f7c5667b150ffd17c01bbab4d80eb9fdb188dc98b98b7", size = 8017, upload-time = "2026-06-05T15:42:52.786Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/79/64000c2792743877baae152499a951c06a9c14b793309ac4ac06135f1ae7/fastmcp-3.4.3-py3-none-any.whl", hash = "sha256:bdf15277800586a033a6e1e95d20301cd508aaa872df3d508c956a2195de6c72", size = 8019, upload-time = "2026-07-05T23:27:53.241Z" },
 ]
 
 [[package]]
 name = "fastmcp-slim"
-version = "3.4.1"
+version = "3.4.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "platformdirs" },
@@ -606,9 +606,9 @@ dependencies = [
     { name = "rich" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fd/13/781b42f6aace53a6d5a8e6c3a91553e25f6677b9e30a0f0668e2367577f9/fastmcp_slim-3.4.1.tar.gz", hash = "sha256:659e2c0c77cc040d6e8383d860e02cd8f19321c7c8cf7d4c51d987a3cb02e727", size = 576047, upload-time = "2026-06-05T15:42:27.401Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/fa/500f6362016c34fba01c6412bbfd53435dc75900abd1266d88e111e2e9c2/fastmcp_slim-3.4.3.tar.gz", hash = "sha256:e3e12ac1e87c5195fa59a1c3cd2d31b487a463c269089fb4020b7571cbb57b29", size = 588086, upload-time = "2026-07-05T23:27:33.884Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/8f/1c7f8ae7f6960302ef93693a64c1037756ee5ebae29f1adb31a6cc79712c/fastmcp_slim-3.4.1-py3-none-any.whl", hash = "sha256:f6fa047d67b808d49b98b1017430c2620a2708211fb7b3a2c12d9f4298b6cc47", size = 748961, upload-time = "2026-06-05T15:42:28.769Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/4f/66765dfe4fe65b45e134e54ca46118d93189fb10cd8ecb635cf504b68552/fastmcp_slim-3.4.3-py3-none-any.whl", hash = "sha256:21ad50465494edb141eed76b177dc788e00e705a5df09b53a31efebeb4432a95", size = 761455, upload-time = "2026-07-05T23:27:32.547Z" },
 ]
 
 [package.optional-dependencies]
@@ -1687,15 +1687,15 @@ wheels = [
 
 [[package]]
 name = "sentry-sdk"
-version = "2.61.1"
+version = "2.64.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "certifi" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/63/3b/4bc6b348bbd331daa14d4babe9f2b99bc854f4da41560eefb9488d78481d/sentry_sdk-2.61.1.tar.gz", hash = "sha256:9c6adccb3feefa9ba032c8d295ca477575c2f11896046a2b0ad686c47c4af555", size = 459429, upload-time = "2026-06-01T07:24:18.875Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/31/b7341f156a5f6f36f0b4845d6f1c28a2ae4799171dba7007f3a1e9b234b4/sentry_sdk-2.64.0.tar.gz", hash = "sha256:68be2c29e14ae310f8a39e1a79916b6d85c6cb41dcce789d14ff05fe293e4c55", size = 921020, upload-time = "2026-06-30T08:13:47.682Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/54/c9218db183846e08efaf68534889ef42e499dde432778881104a42f7071b/sentry_sdk-2.61.1-py3-none-any.whl", hash = "sha256:fa36eaf4b8ad708f718500d4bdcc1532637526a22beb874d88cbc0a46458b5ae", size = 483735, upload-time = "2026-06-01T07:24:17.027Z" },
+    { url = "https://files.pythonhosted.org/packages/36/a8/3fb9a4319efa3b26f5be0e90e6d8918df43fa7c7e977d26390f589501d82/sentry_sdk-2.64.0-py3-none-any.whl", hash = "sha256:715ea91ca860a819e8d8a50a7bde3a80d0df3b4ed7b6660a20fb9a2d084188f1", size = 498901, upload-time = "2026-06-30T08:13:45.566Z" },
 ]
 
 [[package]]
