@@ -91,13 +91,10 @@ cp .env.example .env
 4. Run the server:
 
 ```sh
-# Using UV
-uv run python run_server.py
+# Using UV (recommended)
+uv run librenms-mcp
 
-# Or directly with Python
-python run_server.py
-
-# Or using the installed script
+# Or using the installed command directly
 librenms-mcp
 ```
 
