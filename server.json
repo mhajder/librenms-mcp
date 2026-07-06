@@ -233,7 +233,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/mhajder/librenms-mcp:1.10.0",
+      "identifier": "ghcr.io/mhajder/librenms-mcp:1.10.1",
       "transport": {
         "type": "streamable-http",
         "url": "http://localhost:{MCP_HTTP_PORT}/mcp"
