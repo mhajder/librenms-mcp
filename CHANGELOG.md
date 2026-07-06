@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.3](https://github.com/mhajder/librenms-mcp/compare/v1.10.2...v1.10.3) (2026-07-06)
+
+
+### 🧹 Refactoring
+
+* update default HTTP bind address and improve transport validation ([#123](https://github.com/mhajder/librenms-mcp/issues/123)) ([35a7976](https://github.com/mhajder/librenms-mcp/commit/35a79769e257b4cc33b2b6f467c624343e2af724))
+
 ## [1.10.2](https://github.com/mhajder/librenms-mcp/compare/v1.10.1...v1.10.2) (2026-07-06)
 
 

@@ -849,7 +849,7 @@ wheels = [
 
 [[package]]
 name = "librenms-mcp"
-version = "1.10.2"
+version = "1.10.3"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
