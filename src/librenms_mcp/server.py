@@ -12,6 +12,7 @@ from importlib.metadata import version
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
+from fastmcp import settings
 from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 from fastmcp.server.middleware.rate_limiting import SlidingWindowRateLimitingMiddleware
 from fastmcp.server.transforms.search import BM25SearchTransform
@@ -24,6 +25,10 @@ from librenms_mcp.tools import register_tools
 
 # Load environment variables
 load_dotenv()
+
+# Configure FastMCP defaults
+settings.show_server_banner = False
+settings.check_for_updates = "off"
 
 # Initialize optional Sentry monitoring
 init_sentry()
