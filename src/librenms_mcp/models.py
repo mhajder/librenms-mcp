@@ -45,7 +45,8 @@ class TransportConfig(BaseModel):
     )
     # HTTP transport settings (for both SSE and HTTP Streamable)
     http_host: str = Field(
-        "0.0.0.0", description="Host to bind for HTTP transports (SSE/HTTP Streamable)"
+        "127.0.0.1",
+        description="Host to bind for HTTP transports (SSE/HTTP Streamable)",
     )
     http_port: int = Field(
         8000, description="Port to bind for HTTP transports (SSE/HTTP Streamable)"

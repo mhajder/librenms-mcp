@@ -154,11 +154,15 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
 
 def get_transport_config_from_env() -> TransportConfig:
     """Get transport configuration from environment variables."""
+    http_bearer_token = os.getenv("MCP_HTTP_BEARER_TOKEN")
+    if http_bearer_token is not None:
+        http_bearer_token = http_bearer_token.strip() or None
+
     return TransportConfig(
         transport_type=os.getenv("MCP_TRANSPORT", "stdio").lower(),
-        http_host=os.getenv("MCP_HTTP_HOST", "0.0.0.0"),
+        http_host=os.getenv("MCP_HTTP_HOST", "127.0.0.1"),
         http_port=int(os.getenv("MCP_HTTP_PORT", "8000")),
-        http_bearer_token=os.getenv("MCP_HTTP_BEARER_TOKEN"),
+        http_bearer_token=http_bearer_token,
     )
 
 

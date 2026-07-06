@@ -142,6 +142,15 @@ def main():
         )
         raise SystemExit(1)
 
+    if (
+        TRANSPORT_CONFIG.transport_type in {"sse", "http"}
+        and not TRANSPORT_CONFIG.http_bearer_token
+    ):
+        logger.warning(
+            "WARNING: MCP_HTTP_BEARER_TOKEN is not set. The MCP server will run WITHOUT authentication. "
+            "Ensure the server is not exposed to untrusted networks (e.g. bind to 127.0.0.1 instead of 0.0.0.0)."
+        )
+
     logger.info(f"Starting LibreNMS MCP Server at {LNMS_CONFIG.librenms_url} ...")
 
     # Choose transport based on configuration

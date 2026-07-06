@@ -95,7 +95,6 @@ select = [
 
 ignore = [
     "E501",  # Line too long, handled by formatter
-    "S104",  # Possible binding to all interface
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.

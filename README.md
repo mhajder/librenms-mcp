@@ -193,12 +193,12 @@ TOOL_SEARCH_MAX_RESULTS=5
 MCP_TRANSPORT=stdio
 
 # HTTP Transport Settings (used when MCP_TRANSPORT=sse or MCP_TRANSPORT=http)
-# Host to bind the HTTP server (default: 0.0.0.0 for all interfaces)
-MCP_HTTP_HOST=0.0.0.0
+# Host to bind the HTTP server (default: 127.0.0.1)
+# MCP_HTTP_HOST=127.0.0.1
 # Port to bind the HTTP server (default: 8000)
-MCP_HTTP_PORT=8000
+# MCP_HTTP_PORT=8000
 # Optional bearer token for authentication (leave empty for no auth)
-MCP_HTTP_BEARER_TOKEN=
+# MCP_HTTP_BEARER_TOKEN=
 ```
 
 ## Available Tools
@@ -482,7 +482,7 @@ For network-based deployments, you can use HTTP with Server-Sent Events. This al
 
 ```env
 MCP_TRANSPORT=sse
-MCP_HTTP_HOST=0.0.0.0        # Bind to all interfaces (or specific IP)
+MCP_HTTP_HOST=127.0.0.1        # Localhost
 MCP_HTTP_PORT=8000           # Port to listen on
 MCP_HTTP_BEARER_TOKEN=your-secret-token  # Optional authentication token
 ```
@@ -499,7 +499,7 @@ The HTTP Streamable transport provides HTTP-based communication with request/res
 
 ```env
 MCP_TRANSPORT=http
-MCP_HTTP_HOST=0.0.0.0        # Bind to all interfaces (or specific IP)
+MCP_HTTP_HOST=127.0.0.1        # Localhost
 MCP_HTTP_PORT=8000           # Port to listen on
 MCP_HTTP_BEARER_TOKEN=your-secret-token  # Optional authentication token
 ```
