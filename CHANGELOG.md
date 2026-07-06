@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.10.1](https://github.com/mhajder/librenms-mcp/compare/v1.10.0...v1.10.1) (2026-07-06)
+
+
+### 🐛 Bug Fixes
+
+* **docker:** update base image from alpine3.23 to alpine3.24 ([#116](https://github.com/mhajder/librenms-mcp/issues/116)) ([c0be21f](https://github.com/mhajder/librenms-mcp/commit/c0be21f1998178b35e150410b2d321b181cd14ad))
+
 ## [1.10.0](https://github.com/mhajder/librenms-mcp/compare/v1.9.0...v1.10.0) (2026-06-05)
 
 
