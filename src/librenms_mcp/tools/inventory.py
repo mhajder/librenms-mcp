@@ -84,7 +84,7 @@ def register_inventory_tools(mcp, config):
 
             async with LibreNMSClient(config) as client:
                 result = await client.get(
-                    f"inventory/{hostname}", params=params if params else None
+                    f"inventory/{hostname}", params=params or None
                 )
             return paginate_list(result, limit, offset, key="inventory")
 

@@ -4,7 +4,7 @@ from librenms_mcp.utils import parse_bool
 
 
 @pytest.mark.parametrize(
-    "val,default,expected",
+    ("val", "default", "expected"),
     [
         (None, True, True),
         (None, False, False),

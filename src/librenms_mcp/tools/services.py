@@ -79,7 +79,7 @@ def register_service_tools(mcp, config):
             await ctx.info("Listing services...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("services", params=params if params else None)
+                result = await client.get("services", params=params or None)
             return paginate_list(result, limit, offset, key="services")
 
         except Exception as e:
@@ -149,9 +149,7 @@ def register_service_tools(mcp, config):
             await ctx.info(f"Getting services for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(
-                    f"services/{hostname}", params=params if params else None
-                )
+                result = await client.get(f"services/{hostname}", params=params or None)
             return paginate_list(result, limit, offset, key="services")
 
         except Exception as e:

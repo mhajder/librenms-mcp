@@ -176,7 +176,7 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing BGP sessions...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("bgp", params=params if params else None)
+                result = await client.get("bgp", params=params or None)
             return paginate_list(result, limit, offset)
 
         except Exception as e:

@@ -18,7 +18,7 @@ class LibreNMSClient:
     _instance = None
     _initialized = False
 
-    def __new__(cls, config: LibreNMSConfig | None = None):
+    def __new__(cls, *args: Any, **kwargs: Any):  # noqa: ARG004
         """Create a new instance of LibreNMSClient."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)

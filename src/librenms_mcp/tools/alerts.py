@@ -188,9 +188,7 @@ def register_alert_tools(mcp, config):
             await ctx.info(f"Acknowledging alert {alert_id}")
 
             async with LibreNMSClient(config) as client:
-                return await client.put(
-                    f"alerts/{alert_id}", data=data if data else None
-                )
+                return await client.put(f"alerts/{alert_id}", data=data or None)
 
         except Exception as e:
             await ctx.error(f"Error acknowledging alert {alert_id}: {e!s}")

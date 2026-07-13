@@ -308,7 +308,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
             async with LibreNMSClient(config) as client:
                 result = await client.get(
-                    f"devices/{hostname}/ports", params=params if params else None
+                    f"devices/{hostname}/ports", params=params or None
                 )
             return paginate_list(result, limit, offset, key="ports")
 
@@ -703,7 +703,7 @@ Example dynamic group:
             async with LibreNMSClient(config) as client:
                 result = await client.get(
                     f"devicegroups/{quote(name, safe='')}",
-                    params=params if params else None,
+                    params=params or None,
                 )
             return paginate_list(result, limit, offset)
 
