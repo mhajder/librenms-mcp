@@ -3,8 +3,8 @@ minimum_prek_version: "0.3.3"
 default_install_hook_types: [ pre-push, commit-msg, pre-commit ]
 exclude: |
   (?x)^(
-    .release-please-manifest.json
-  )
+    \.release-please-manifest\.json
+  )$
 
 repos:
   - repo: meta
@@ -34,32 +34,38 @@ repos:
         name: ruff check
         entry: uv run ruff check --force-exclude --fix --exit-non-zero-on-fix
         require_serial: true
-        language: unsupported
+        language: system
         types: [ python ]
 
       - id: local-ruff-format
         name: ruff format
         entry: uv run ruff format --force-exclude --exit-non-zero-on-format
         require_serial: true
-        language: unsupported
+        language: system
         types: [ python ]
 
       - id: local-ty-check
         name: ty check
         entry: uv run ty check . --ignore unresolved-import
-        language: unsupported
-        types: [ python ]
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: local-typos
+        name: typos
+        entry: uv run typos
+        language: system
 
       - id: local-commitizen
         name: commitizen check
         entry: uv run cz check --allow-abort --commit-msg-file
-        language: unsupported
+        language: system
         stages: [ commit-msg ]
 
       - id: local-commitizen-branch
         name: commitizen branch check
         entry: uv run cz check --rev-range origin/HEAD..HEAD
-        language: unsupported
+        language: system
         pass_filenames: false
         always_run: true
         stages:

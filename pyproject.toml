@@ -50,6 +50,7 @@ dev = [
     "pytest-cov>=7.0.0",
     "ruff>=0.14.14",
     "ty>=0.0.17",
+    "typos>=1.48.0",
 ]
 
 [project.scripts]
@@ -128,6 +129,9 @@ docstring-code-line-length = "dynamic"
 [tool.ruff.lint.isort]
 known-first-party = ["librenms_mcp"]
 force-single-line = true
+
+[tool.typos.default.extend-identifiers]
+TrUe = "TrUe"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
