@@ -212,6 +212,8 @@ MCP_TRANSPORT=stdio
 - `device_delete`: Remove a device
 - `device_ports`: List all ports for a device
 - `device_ports_get`: Get details for a specific port on a device
+- `device_fdb`: List the forwarding database (learned MACs) for a device
+- `device_nac`: List network access control (802.1X / MAB) sessions on a device
 - `device_availability`: Get device availability
 - `device_outages`: Get device outages
 - `device_set_maintenance`: Set device maintenance mode
@@ -245,6 +247,7 @@ MCP_TRANSPORT=stdio
 - `ports_search_field`: Search ports by a specific field
 - `ports_search_mac`: Search ports by MAC address
 - `port_get`: Get details for a specific port
+- `port_fdb`: List MAC addresses learned on a port
 - `port_ip_info`: Get IP address information for a port
 - `port_transceiver`: Get transceiver information for a port
 - `port_description_get`: Get a port description
@@ -254,6 +257,26 @@ MCP_TRANSPORT=stdio
 - `port_group_list_ports`: List ports in a port group
 - `port_group_assign`: Assign ports to a port group
 - `port_group_remove`: Remove ports from a port group
+
+### Port Security Tools
+
+- `port_security_list`: List port security configuration across all devices
+- `port_security_device`: Get port security configuration for a device
+- `port_security_port`: Get port security configuration for a single port
+
+### Graph Tools
+
+Graphs are returned as MCP images. LibreNMS serves SVG on current releases and
+PNG on older ones; the MIME type is taken from the response.
+
+- `device_graphs_list`: List the graph types available for a device
+- `device_graph`: Render a device-level graph (e.g. `device_icmp_perf`)
+- `port_graph`: Render a per-port graph by interface name (`bits`, `upkts`, `errors`, `etherlike`)
+- `port_group_graph`: Render a traffic graph for one or more ports by port ID
+
+`port_graph` falls back to the port-group endpoint for `bits` when the per-port
+endpoint fails, which works around LibreNMS releases that return a 500 naming an
+empty graph type.
 
 ### Alerting & Logging Tools
 
@@ -309,6 +332,7 @@ MCP_TRANSPORT=stdio
 - `bgp_session_get`: Get details for a specific BGP session
 - `bgp_session_edit`: Edit a BGP session
 - `fdb_lookup`: Lookup forwarding database (FDB) entries
+- `nac_list`: List network access control (802.1X / MAB) sessions across all devices
 - `ospf_list`: List OSPF instances
 - `ospf_ports`: List OSPF ports
 - `vrf_list`: List VRFs

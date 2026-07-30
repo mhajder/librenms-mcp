@@ -1076,3 +1076,101 @@ Example dynamic group:
         except Exception as e:
             await ctx.error(f"Error adding event log for {hostname}: {e!s}")
             return {"error": str(e)}
+
+    @mcp.tool(
+        tags={"librenms", "devices", "fdb", "read-only"},
+        annotations={
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+        },
+    )
+    async def device_fdb(
+        hostname: Annotated[str, Field(description="Device hostname or device ID")],
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(default=100, description="Maximum number of results to return", ge=1),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
+        """
+        List the forwarding database (learned MAC addresses) for a device.
+
+        Each entry carries the port_id it was learned on, so this is the
+        device-wide view of what is plugged into a switch.
+
+        Args:
+            hostname (str): Device hostname or device ID.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
+
+        Returns:
+            dict: The JSON response from the API.
+        """
+        try:
+            await ctx.info(f"Listing FDB entries for {hostname}...")
+
+            async with LibreNMSClient(config) as client:
+                result = await client.get(f"devices/{quote(hostname, safe='')}/fdb")
+                return paginate_list(result, limit, offset, key="ports_fdb")
+
+        except Exception as e:
+            await ctx.error(f"Error listing FDB for {hostname}: {e!s}")
+            return {"error": str(e)}
+
+    @mcp.tool(
+        tags={"librenms", "devices", "nac", "read-only"},
+        annotations={
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+        },
+    )
+    async def device_nac(
+        hostname: Annotated[str, Field(description="Device hostname or device ID")],
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(default=100, description="Maximum number of results to return", ge=1),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
+        """
+        List network access control (802.1X / MAB) sessions on a device.
+
+        Shows authenticated endpoints per port, including the authentication
+        method and the assigned VLAN where the device reports it.
+
+        Args:
+            hostname (str): Device hostname or device ID.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
+
+        Returns:
+            dict: The JSON response from the API.
+        """
+        try:
+            await ctx.info(f"Listing NAC sessions for {hostname}...")
+
+            async with LibreNMSClient(config) as client:
+                result = await client.get(f"devices/{quote(hostname, safe='')}/nac")
+                return paginate_list(result, limit, offset, key="ports_nac")
+
+        except Exception as e:
+            await ctx.error(f"Error listing NAC sessions for {hostname}: {e!s}")
+            return {"error": str(e)}

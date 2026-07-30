@@ -566,3 +566,61 @@ def register_network_tools(mcp, config):
         except Exception as e:
             await ctx.error(f"Error listing VRF: {e!s}")
             return {"error": str(e)}
+
+    @mcp.tool(
+        tags={"librenms", "network", "nac", "read-only"},
+        annotations={
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+        },
+    )
+    async def nac_list(
+        ctx: Context,
+        mac: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description="Filter to a single MAC address. Optional.",
+            ),
+        ] = None,
+        limit: Annotated[
+            int,
+            Field(default=100, description="Maximum number of results to return", ge=1),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
+        """
+        List network access control (802.1X / MAB) sessions across all devices.
+
+        Note that LibreNMS answers with a 404 and "Nac entry does not exist"
+        rather than an empty list when nothing matches.
+
+        Args:
+            mac (str, optional): Restrict the result to a single MAC address.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
+
+        Returns:
+            dict: The JSON response from the API.
+        """
+        try:
+            await ctx.info("Listing NAC sessions...")
+
+            async with LibreNMSClient(config) as client:
+                path = (
+                    f"resources/nac/{quote(mac, safe='')}" if mac else "resources/nac"
+                )
+                result = await client.get(path)
+            return paginate_list(result, limit, offset)
+
+        except Exception as e:
+            await ctx.error(f"Error listing NAC sessions: {e!s}")
+            return {"error": str(e)}

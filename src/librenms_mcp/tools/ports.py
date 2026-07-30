@@ -612,3 +612,52 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         except Exception as e:
             await ctx.error(f"Error removing port group {port_group_id}: {e!s}")
             return {"error": str(e)}
+
+    @mcp.tool(
+        tags={"librenms", "ports", "fdb", "read-only"},
+        annotations={
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+        },
+    )
+    async def port_fdb(
+        port_id: Annotated[int, Field(ge=1, description="Port ID")],
+        ctx: Context,
+        limit: Annotated[
+            int,
+            Field(default=100, description="Maximum number of results to return", ge=1),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
+        """
+        List the MAC addresses learned on a port, from the forwarding database.
+
+        This answers "what is connected to this port". To go the other way and
+        find which port a known MAC sits on, use fdb_lookup instead.
+
+        Args:
+            port_id (int): Port ID.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
+
+        Returns:
+            dict: The JSON response from the API.
+        """
+        try:
+            await ctx.info(f"Listing FDB entries for port {port_id}...")
+
+            async with LibreNMSClient(config) as client:
+                result = await client.get(f"ports/{port_id}/fdb")
+                return paginate_list(result, limit, offset, key="macs")
+
+        except Exception as e:
+            await ctx.error(f"Error listing FDB for port {port_id}: {e!s}")
+            return {"error": str(e)}

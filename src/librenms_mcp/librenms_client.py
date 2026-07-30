@@ -83,6 +83,31 @@ class LibreNMSClient:
         """Perform a GET request to a LibreNMS API path."""
         return await self.request("GET", path, params=params)
 
+    async def get_raw(
+        self, path: str, params: dict[str, Any] | None = None
+    ) -> tuple[bytes, str]:
+        """Perform a GET request returning the undecoded body and its content type.
+
+        Graph endpoints return an image (SVG or PNG depending on the LibreNMS
+        version and rrdtool build) rather than JSON, so they cannot go through
+        `get()`, which would fail to decode the body.
+
+        Args:
+            path: LibreNMS API path.
+            params: Optional query parameters.
+
+        Returns:
+            tuple[bytes, str]: The raw response body and its MIME type.
+        """
+        if self.client is None:
+            raise RuntimeError(
+                "Client not initialized - use 'async with LibreNMSClient(config)' or call __aenter__"
+            )
+        resp = await self.client.get(path.lstrip("/"), params=params)
+        resp.raise_for_status()
+        content_type = resp.headers.get("content-type", "application/octet-stream")
+        return resp.content, content_type.split(";")[0].strip()
+
     async def post(
         self, path: str, data: dict[str, Any] | None = None
     ) -> dict[str, Any]:
