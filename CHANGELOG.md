@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.0](https://github.com/mhajder/librenms-mcp/compare/v1.10.3...v1.11.0) (2026-07-31)
+
+
+### 🚀 Features
+
+* add graph, FDB, port security and NAC tools ([#135](https://github.com/mhajder/librenms-mcp/issues/135)) ([183adae](https://github.com/mhajder/librenms-mcp/commit/183adae0588259724a235e20e4db9f9fb0ad1861))
+
 ## [1.10.3](https://github.com/mhajder/librenms-mcp/compare/v1.10.2...v1.10.3) (2026-07-06)
 
 
