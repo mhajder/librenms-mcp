@@ -13,7 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 class LibreNMSClient:
-    """Async client for LibreNMS API using API token authentication"""
+    """Async client for LibreNMS API using API token authentication.
+
+    This is a singleton so that every tool shares one connection pool. Only the
+    first call's config is used - a config passed to a later call is discarded,
+    which is safe here because the server builds exactly one config at startup.
+    """
 
     _instance = None
     _initialized = False
@@ -67,15 +72,29 @@ class LibreNMSClient:
         params: dict[str, Any] | None = None,
         data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Perform a request to a LibreNMS API path."""
+        """Perform a request to a LibreNMS API path.
+
+        The status code is deliberately not raised on: LibreNMS reports its own
+        errors as JSON (``{"status": "error", "message": ...}``) alongside 4xx/5xx
+        codes, and that message is more useful to the caller than the code. A body
+        that is not JSON at all is not from LibreNMS - a reverse proxy error page,
+        for instance - so that is surfaced with the status code attached rather
+        than as a bare "Expecting value" decode error.
+        """
         if self.client is None:
             raise RuntimeError(
                 "Client not initialized - use 'async with LibreNMSClient(config)' or call __aenter__"
             )
         url = path.lstrip("/")
         resp = await self.client.request(method, url, params=params, json=data)
-        # resp.raise_for_status()
-        return resp.json()
+        try:
+            return resp.json()
+        except ValueError as e:
+            snippet = resp.text.strip()[:200] or "<empty body>"
+            raise RuntimeError(
+                f"LibreNMS returned a non-JSON response for {method} {url} "
+                f"(HTTP {resp.status_code}): {snippet}"
+            ) from e
 
     async def get(
         self, path: str, params: dict[str, Any] | None = None
@@ -189,18 +208,3 @@ def get_transport_config_from_env() -> TransportConfig:
         http_port=int(os.getenv("MCP_HTTP_PORT", "8000")),
         http_bearer_token=http_bearer_token,
     )
-
-
-_librenms_client_singleton: LibreNMSClient | None = None
-
-
-def get_librenms_client(config: LibreNMSConfig | None = None) -> LibreNMSClient:
-    """Get the singleton LibreNMS client instance."""
-    global _librenms_client_singleton
-    if _librenms_client_singleton is None:
-        if config is None:
-            raise ValueError(
-                "LibreNMS config must be provided for first initialization"
-            )
-        _librenms_client_singleton = LibreNMSClient(config)
-    return _librenms_client_singleton
