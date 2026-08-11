@@ -33,12 +33,22 @@ settings.check_for_updates = "off"
 # Initialize optional Sentry monitoring
 init_sentry()
 
-# Configure logging
+# Configure logging. An unknown or lowercase LOG_LEVEL must not take the server
+# down, so resolve it leniently and fall back to INFO.
+_requested_log_level = os.getenv("LOG_LEVEL", "INFO").strip().upper()
+_resolved_log_level = logging.getLevelNamesMapping().get(_requested_log_level)
 logging.basicConfig(
-    level=getattr(logging, os.getenv("LOG_LEVEL", "INFO")),
+    level=_resolved_log_level if _resolved_log_level is not None else logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+if _resolved_log_level is None:
+    logger.warning(
+        "Unknown LOG_LEVEL %r - falling back to INFO. Valid values: %s",
+        _requested_log_level,
+        ", ".join(logging.getLevelNamesMapping()),
+    )
 
 # Get package version
 try:
