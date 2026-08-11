@@ -5,10 +5,13 @@ LibreNMS MCP Server Bill Tools
 from typing import Annotated
 from typing import Any
 
+from fastmcp.exceptions import ToolError
 from fastmcp.server.context import Context
+from fastmcp.utilities.types import Image
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.graphs import _to_image
 from librenms_mcp.utils import paginate_list
 
 
@@ -143,26 +146,35 @@ def register_bill_tools(mcp, config):
             Field(description="Graph type: bits, monthly, hour, or day"),
         ],
         ctx: Context,
-    ) -> dict:
+    ) -> Image:
         """
-        Get bill graph image from LibreNMS.
+        Render a bill graph as an image.
+
+        For the underlying numbers rather than a picture, use bill_graph_data.
 
         Args:
             bill_id (int): Bill ID.
             graph_type (str): Type of graph (bits, monthly, hour, day).
 
         Returns:
-            dict: The JSON response from the API.
+            Image: The rendered graph.
         """
         try:
             await ctx.info(f"Getting bill graph {bill_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"bills/{bill_id}/graphs/{graph_type}")
+                data, content_type = await client.get_raw(
+                    f"bills/{bill_id}/graphs/{graph_type}"
+                )
+                return _to_image(data, content_type)
 
+        except ToolError:
+            raise
         except Exception as e:
             await ctx.error(f"Error bill graph {bill_id}: {e!s}")
-            return {"error": str(e)}
+            raise ToolError(
+                f"Could not render the {graph_type} graph for bill {bill_id}: {e!s}"
+            ) from e
 
     @mcp.tool(
         tags={"librenms", "bills", "read-only"},
@@ -266,9 +278,12 @@ def register_bill_tools(mcp, config):
             Field(description="Graph type: bits, monthly, hour, or day"),
         ],
         ctx: Context,
-    ) -> dict:
+    ) -> Image:
         """
-        Get bill history graph from LibreNMS.
+        Render a graph for a past billing period as an image.
+
+        For the underlying numbers rather than a picture, use
+        bill_history_graph_data.
 
         Args:
             bill_id (int): Bill ID.
@@ -276,19 +291,25 @@ def register_bill_tools(mcp, config):
             graph_type (str): Type of graph (bits, monthly, hour, day).
 
         Returns:
-            dict: The JSON response from the API.
+            Image: The rendered graph.
         """
         try:
             await ctx.info(f"Getting bill history graph {bill_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
+                data, content_type = await client.get_raw(
                     f"bills/{bill_id}/history/{history_id}/graphs/{graph_type}"
                 )
+                return _to_image(data, content_type)
 
+        except ToolError:
+            raise
         except Exception as e:
             await ctx.error(f"Error bill history graph {bill_id}: {e!s}")
-            return {"error": str(e)}
+            raise ToolError(
+                f"Could not render the {graph_type} graph for bill {bill_id} "
+                f"history {history_id}: {e!s}"
+            ) from e
 
     @mcp.tool(
         tags={"librenms", "bills", "read-only"},

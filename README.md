@@ -304,10 +304,10 @@ empty graph type.
 
 - `bills_list`: List bills
 - `bill_get`: Get details for a bill
-- `bill_graph`: Get bill graph
+- `bill_graph`: Render a bill graph as an image
 - `bill_graph_data`: Get bill graph data
 - `bill_history`: Get bill history
-- `bill_history_graph`: Get bill history graph
+- `bill_history_graph`: Render a bill history graph as an image
 - `bill_history_graph_data`: Get bill history graph data
 - `bill_create_or_update`: Create or update a bill
 - `bill_delete`: Delete a bill
