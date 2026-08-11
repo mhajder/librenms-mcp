@@ -17,7 +17,7 @@ def register_poller_tools(mcp, config):
     ##########################
 
     @mcp.tool(
-        tags={"librenms", "poller-groups", "read-only", "admin"},
+        tags={"librenms", "poller-groups", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,

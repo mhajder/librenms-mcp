@@ -180,14 +180,17 @@ def register_location_tools(mcp, config):
             return {"error": str(e)}
 
     @mcp.tool(
-        tags={"librenms", "locations", "read-only", "admin"},
+        tags={"librenms", "locations", "read-only", "global-read"},
         annotations={
             "readOnlyHint": True,
             "destructiveHint": False,
             "idempotentHint": True,
         },
     )
-    async def location_get(location: Annotated[str, Field()], ctx: Context) -> dict:
+    async def location_get(
+        location: Annotated[str, Field(description="Location identifier or name")],
+        ctx: Context,
+    ) -> dict:
         """
         Get a specific location from LibreNMS by identifier.
 

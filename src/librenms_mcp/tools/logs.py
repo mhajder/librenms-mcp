@@ -330,10 +330,11 @@ def register_logs_tools(mcp, config):
         ] = None,
     ) -> dict:
         """
-        Get auth logs for a device from LibreNMS.
+        Get authentication logs from LibreNMS.
+
+        Auth logs are server-wide rather than per-device, so this takes no hostname.
 
         Args:
-            hostname (str): Device hostname or ID.
             start (int): Number of results to skip.
             limit (int): Max results.
             from_ts (str, optional): Start timestamp.
