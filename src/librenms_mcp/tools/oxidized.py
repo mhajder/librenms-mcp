@@ -161,9 +161,10 @@ def register_oxidized_tools(mcp, config):
                 result = await client.get(
                     f"oxidized/config/search/{quote(search, safe='')}"
                 )
+                # LibreNMS returns the matches under "nodes".
                 if isinstance(result, list):
-                    result = {"results": result}
-                return paginate_list(result, limit, offset, key="results")
+                    result = {"nodes": result}
+                return paginate_list(result, limit, offset, key="nodes")
 
         except Exception as e:
             await ctx.error(f"Error searching Oxidized configs: {e!s}")
