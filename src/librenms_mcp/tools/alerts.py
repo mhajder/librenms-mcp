@@ -474,8 +474,8 @@ Example:
             await ctx.info("Listing all alert templates...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("templates")
-            return paginate_list(result, limit, offset)
+                result = await client.get("alert_templates")
+            return paginate_list(result, limit, offset, key="alert_templates")
 
         except Exception as e:
             await ctx.error(f"Error listing alert templates: {e!s}")
@@ -506,7 +506,7 @@ Example:
             await ctx.info(f"Getting alert template {template_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"templates/{template_id}")
+                return await client.get(f"alert_templates/{template_id}")
 
         except Exception as e:
             await ctx.error(f"Error getting alert template {template_id}: {e!s}")
@@ -527,12 +527,15 @@ Example:
                 description="""Alert template payload fields:
 - name (required): Template name
 - template (required): Template body (Laravel Blade syntax)
-- title (optional): Alert title template
-- title_rec (optional): Recovery title template
-- rules (optional): Array of alert rule IDs to associate with this template
+- title (required): Alert title template
+- title_rec (required): Recovery title template
+- alert_rules (required): Array of alert rule IDs to associate with this template (use [] for none)
+
+LibreNMS renders title, title_rec and template against test data and reads
+alert_rules unconditionally, so all five fields must be present.
 
 Example:
-{"name": "Custom Alert", "template": "{{ $alert->title }}\\nSeverity: {{ $alert->severity }}", "title": "Alert: {{ $alert->title }}"}"""
+{"name": "Custom Alert", "template": "{{ $alert->title }}\\nSeverity: {{ $alert->severity }}", "title": "Alert: {{ $alert->title }}", "title_rec": "Recovered: {{ $alert->title }}", "alert_rules": []}"""
             ),
         ],
         ctx: Context,
@@ -550,7 +553,7 @@ Example:
             await ctx.info("Creating new alert template...")
 
             async with LibreNMSClient(config) as client:
-                return await client.post("templates", data=payload)
+                return await client.post("alert_templates", data=payload)
 
         except Exception as e:
             await ctx.error(f"Error creating alert template: {e!s}")
@@ -568,13 +571,17 @@ Example:
         payload: Annotated[
             dict,
             Field(
-                description="""Alert template edit payload (must include id field):
-- id (required): Template ID to edit
-- name: Template name
-- template: Template body (Laravel Blade syntax)
-- title: Alert title template
-- title_rec: Recovery title template
-- rules: Array of alert rule IDs to associate with this template"""
+                description="""Alert template edit payload (must include template_id):
+- template_id (required): Template ID to edit. Without it LibreNMS creates a new
+  template instead of editing the existing one.
+- name (required): Template name
+- template (required): Template body (Laravel Blade syntax)
+- title (required): Alert title template
+- title_rec (required): Recovery title template
+- alert_rules (required): Array of alert rule IDs to associate with this template (use [] for none)
+
+LibreNMS replaces the whole template on edit, so resend every field, not just
+the ones being changed."""
             ),
         ],
         ctx: Context,
@@ -583,50 +590,17 @@ Example:
         Edit an existing alert template in LibreNMS.
 
         Args:
-            payload (dict): Alert template payload with id and fields to update.
+            payload (dict): Alert template payload with template_id and all template fields.
 
         Returns:
             dict: The JSON response from the API.
         """
         try:
-            await ctx.info(f"Editing alert template {payload.get('id')}...")
+            await ctx.info(f"Editing alert template {payload.get('template_id')}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.put("templates", data=payload)
+                return await client.put("alert_templates", data=payload)
 
         except Exception as e:
             await ctx.error(f"Error editing alert template: {e!s}")
-            return {"error": str(e)}
-
-    @mcp.tool(
-        tags={"librenms", "alert-templates"},
-        annotations={
-            "readOnlyHint": False,
-            "destructiveHint": True,
-            "idempotentHint": True,
-        },
-    )
-    async def alert_template_delete(
-        template_id: Annotated[
-            int, Field(ge=1, description="Alert template ID to delete")
-        ],
-        ctx: Context,
-    ) -> dict:
-        """
-        Delete an alert template from LibreNMS by ID.
-
-        Args:
-            template_id (int): Alert template ID to delete.
-
-        Returns:
-            dict: The JSON response from the API.
-        """
-        try:
-            await ctx.info(f"Deleting alert template {template_id}...")
-
-            async with LibreNMSClient(config) as client:
-                return await client.delete(f"templates/{template_id}")
-
-        except Exception as e:
-            await ctx.error(f"Error deleting alert template {template_id}: {e!s}")
             return {"error": str(e)}

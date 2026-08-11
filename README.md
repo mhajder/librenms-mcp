@@ -293,7 +293,6 @@ empty graph type.
 - `alert_template_get`: Get a specific alert template
 - `alert_template_create`: Create a new alert template
 - `alert_template_edit`: Edit an alert template
-- `alert_template_delete`: Delete an alert template
 - `logs_eventlog`: Get event log for a device
 - `logs_syslog`: Get syslog for a device
 - `logs_alertlog`: Get alert log for a device
