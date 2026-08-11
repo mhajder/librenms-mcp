@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.11.1](https://github.com/mhajder/librenms-mcp/compare/v1.11.0...v1.11.1) (2026-08-11)
+
+
+### 🐛 Bug Fixes
+
+* **alerts:** use the alert_templates API route ([#146](https://github.com/mhajder/librenms-mcp/issues/146)) ([842dcf0](https://github.com/mhajder/librenms-mcp/commit/842dcf0614458afa2d345b296334839f7a0ea1d1))
+* **bills:** return bill graphs as images ([#145](https://github.com/mhajder/librenms-mcp/issues/145)) ([70674c0](https://github.com/mhajder/librenms-mcp/commit/70674c0fbdc127b0498b57ffeeeac612e0ec867a))
+* **client:** report the status code for non-JSON responses ([#142](https://github.com/mhajder/librenms-mcp/issues/142)) ([4eba912](https://github.com/mhajder/librenms-mcp/commit/4eba912247fc3d17a6f27793f204c9eb9a60e908))
+* **config:** treat blank env vars as unset ([#147](https://github.com/mhajder/librenms-mcp/issues/147)) ([589aabf](https://github.com/mhajder/librenms-mcp/commit/589aabf360fde02fad509849afdd2b34e5b770e3))
+* **oxidized:** paginate config search on the nodes key ([#144](https://github.com/mhajder/librenms-mcp/issues/144)) ([0b2e0cc](https://github.com/mhajder/librenms-mcp/commit/0b2e0cced1f619340353735005655d759ce51c96))
+* **server:** resolve LOG_LEVEL case-insensitively ([#143](https://github.com/mhajder/librenms-mcp/issues/143)) ([e2503c6](https://github.com/mhajder/librenms-mcp/commit/e2503c6b0576ccd29719021eb31214fe25906f76))
+* **tools:** stop tagging read-only tools as admin ([#141](https://github.com/mhajder/librenms-mcp/issues/141)) ([663e982](https://github.com/mhajder/librenms-mcp/commit/663e98294dc4656ba7c980334176a1998d9727b2))
+
 ## [1.11.0](https://github.com/mhajder/librenms-mcp/compare/v1.10.3...v1.11.0) (2026-07-31)
 
 
