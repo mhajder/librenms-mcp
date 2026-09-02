@@ -61,7 +61,7 @@ def test_graph_params_omits_unset_values(kwargs, expected):
 )
 def test_to_image_preserves_content_type(content_type, expected_mime):
     image = _to_image(b"payload", content_type)
-    assert image.to_image_content().mimeType == expected_mime
+    assert image.to_image_content().mime_type == expected_mime
 
 
 def test_to_image_rejects_non_image():
