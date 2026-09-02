@@ -8,12 +8,12 @@
     "url": "https://github.com/mhajder/librenms-mcp",
     "source": "github"
   },
-  "version": "1.11.1",
+  "version": "1.11.2",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "librenms-mcp",
-      "version": "1.11.1",
+      "version": "1.11.2",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
@@ -113,7 +113,7 @@
     {
       "registryType": "pypi",
       "identifier": "librenms-mcp",
-      "version": "1.11.1",
+      "version": "1.11.2",
       "runtimeHint": "uvx",
       "transport": {
         "type": "streamable-http",
@@ -233,7 +233,7 @@
     },
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/mhajder/librenms-mcp:1.11.1",
+      "identifier": "ghcr.io/mhajder/librenms-mcp:1.11.2",
       "transport": {
         "type": "streamable-http",
         "url": "http://localhost:{MCP_HTTP_PORT}/mcp"
