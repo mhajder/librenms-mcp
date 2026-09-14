@@ -3,7 +3,7 @@ import os
 from typing import Any
 from typing import Literal
 
-import httpx
+import httpx2
 
 from librenms_mcp.models import LibreNMSConfig
 from librenms_mcp.models import TransportConfig
@@ -39,14 +39,14 @@ class LibreNMSClient:
         # Ensure trailing slash for base_url
         base = config.librenms_url.rstrip("/")
         self.base_url = f"{base}/api/v0"
-        self.client: httpx.AsyncClient | None = None
+        self.client: httpx2.AsyncClient | None = None
         self._initialized = True
 
     async def __aenter__(self):
         """Enter the async context manager."""
         if self.client is None:
             headers = {"X-Auth-Token": self.config.token}
-            self.client = httpx.AsyncClient(
+            self.client = httpx2.AsyncClient(
                 verify=self.config.verify_ssl,
                 timeout=self.config.timeout,
                 headers=headers,

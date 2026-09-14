@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.2](https://github.com/mhajder/librenms-mcp/compare/v1.11.1...v1.11.2) (2026-09-02)
+
+
+### 📦 Build
+
+* **deps:** migrate to FastMCP 4 and httpx2 ([#156](https://github.com/mhajder/librenms-mcp/issues/156)) ([6385b38](https://github.com/mhajder/librenms-mcp/commit/6385b3881fa55caa3effc0fc491fb16912e22c06))
+
 ## [1.11.1](https://github.com/mhajder/librenms-mcp/compare/v1.11.0...v1.11.1) (2026-08-11)
 
 
