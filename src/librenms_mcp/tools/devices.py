@@ -218,7 +218,8 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 - ignore: 0/1 to ignore device in alerts
 - disabled: 0/1 to disable polling
 - snmp_disable: 0/1 to disable SNMP polling
-- display: Custom display name
+- display_template: Custom display name template (LibreNMS >= 26.5)
+- display: Custom display name (LibreNMS < 26.5 only; read-only since 26.5, use display_template)
 - type: Device type classification"""
             ),
         ],
