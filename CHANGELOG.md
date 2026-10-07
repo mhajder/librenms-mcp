@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.3](https://github.com/mhajder/librenms-mcp/compare/v1.11.2...v1.11.3) (2026-10-07)
+
+
+### 🐛 Bug Fixes
+
+* **tools:** document display_template for device_update ([#168](https://github.com/mhajder/librenms-mcp/issues/168)) ([eb7cbd8](https://github.com/mhajder/librenms-mcp/commit/eb7cbd8423aa61049726553c46bfdf930731dce0))
+
 ## [1.11.2](https://github.com/mhajder/librenms-mcp/compare/v1.11.1...v1.11.2) (2026-09-02)
 
 
