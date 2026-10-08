@@ -7,6 +7,9 @@ import httpx2
 
 from librenms_mcp.models import LibreNMSConfig
 from librenms_mcp.models import TransportConfig
+from librenms_mcp.utils import env_int
+from librenms_mcp.utils import http_host_from_env
+from librenms_mcp.utils import normalize_transport
 from librenms_mcp.utils import parse_bool
 
 logger = logging.getLogger(__name__)
@@ -184,15 +187,15 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
         librenms_url=librenms_url,
         token=token,
         verify_ssl=parse_bool(os.getenv("LIBRENMS_VERIFY_SSL"), default=True),
-        timeout=int(os.getenv("LIBRENMS_TIMEOUT", "30")),
+        timeout=env_int("LIBRENMS_TIMEOUT", 30),
         read_only_mode=parse_bool(os.getenv("READ_ONLY_MODE"), default=False),
         disabled_tags=disabled_tags,
         rate_limit_enabled=parse_bool(os.getenv("RATE_LIMIT_ENABLED"), default=False),
-        rate_limit_max_requests=int(os.getenv("RATE_LIMIT_MAX_REQUESTS", "60")),
-        rate_limit_window_minutes=int(os.getenv("RATE_LIMIT_WINDOW_MINUTES", "1")),
+        rate_limit_max_requests=env_int("RATE_LIMIT_MAX_REQUESTS", 60),
+        rate_limit_window_minutes=env_int("RATE_LIMIT_WINDOW_MINUTES", 1),
         tool_search_enabled=parse_bool(os.getenv("TOOL_SEARCH_ENABLED"), default=False),
         tool_search_strategy=tool_search_strategy,
-        tool_search_max_results=int(os.getenv("TOOL_SEARCH_MAX_RESULTS", "5")),
+        tool_search_max_results=env_int("TOOL_SEARCH_MAX_RESULTS", 5),
     )
 
 
@@ -202,9 +205,12 @@ def get_transport_config_from_env() -> TransportConfig:
     if http_bearer_token is not None:
         http_bearer_token = http_bearer_token.strip() or None
 
+    # An unknown value is passed through for main() to reject. Raising here
+    # would break `fastmcp run`, which imports the server module but picks the
+    # transport itself and never reads MCP_TRANSPORT.
     return TransportConfig(
-        transport_type=os.getenv("MCP_TRANSPORT", "stdio").lower(),
-        http_host=os.getenv("MCP_HTTP_HOST", "127.0.0.1"),
-        http_port=int(os.getenv("MCP_HTTP_PORT", "8000")),
+        transport_type=normalize_transport(os.getenv("MCP_TRANSPORT")),
+        http_host=http_host_from_env(),
+        http_port=env_int("MCP_HTTP_PORT", 8000),
         http_bearer_token=http_bearer_token,
     )

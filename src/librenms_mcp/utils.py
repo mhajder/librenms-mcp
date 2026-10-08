@@ -1,6 +1,102 @@
+import os
+from collections.abc import Callable
 from typing import Any
+from typing import TypeVar
 
 TRUTHY_VALUES = ("1", "true", "yes", "on")
+
+# MCP_TRANSPORT spellings and the transport each selects. FastMCP calls the
+# streamable HTTP transport "streamable-http"; that is accepted as well as the
+# shorter "http" this server documents.
+TRANSPORT_ALIASES = {
+    "stdio": "stdio",
+    "sse": "sse",
+    "http": "http",
+    "streamable-http": "http",
+}
+VALID_TRANSPORTS = frozenset(TRANSPORT_ALIASES.values())
+HTTP_TRANSPORTS = frozenset({"sse", "http"})
+
+# Liveness endpoint served on the HTTP transports and probed by the container
+# healthcheck.
+HEALTH_PATH = "/health"
+
+
+def normalize_transport(val: str | None) -> str:
+    """
+    Resolve an MCP_TRANSPORT value to the transport it selects.
+
+    Case and surrounding whitespace are ignored, and blank means stdio. An
+    unknown value is returned as is (normalized) for the caller to reject, so
+    that importing the server - as `fastmcp run` does - never fails on it.
+
+    Args:
+        val: The raw MCP_TRANSPORT value.
+
+    Returns:
+        str: One of VALID_TRANSPORTS, or the normalized unknown value.
+    """
+    raw = (val or "").strip().lower() or "stdio"
+    return TRANSPORT_ALIASES.get(raw, raw)
+
+
+def http_host_from_env() -> str:
+    """
+    Return MCP_HTTP_HOST, stripped and without IPv6 brackets, defaulting to
+    loopback when unset or blank.
+
+    The server and the container healthcheck both read the bind address here,
+    so they always agree on it.
+    """
+    host = (os.getenv("MCP_HTTP_HOST") or "").strip() or "127.0.0.1"
+    # Accept the URL form of an IPv6 literal ('[::]'); uvicorn needs it bare.
+    if host.startswith("[") and host.endswith("]"):
+        host = host[1:-1]
+    return host
+
+
+def transport_help() -> str:
+    """List the accepted MCP_TRANSPORT spellings for error messages."""
+    return ", ".join(TRANSPORT_ALIASES)
+
+
+_Number = TypeVar("_Number", int, float)
+
+
+def _env_number(
+    name: str, default: _Number, cast: Callable[[str], _Number], kind: str
+) -> _Number:
+    """Read a numeric environment variable, treating a blank value as unset."""
+    raw = os.getenv(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return cast(raw.strip())
+    except ValueError:
+        raise ValueError(f"{name} must be {kind}, got {raw!r}") from None
+
+
+def env_int(name: str, default: int) -> int:
+    """
+    Read an integer environment variable.
+
+    A blank or whitespace-only value counts as unset and yields the default,
+    matching how parse_bool treats blank values.
+
+    Raises:
+        ValueError: If the variable is set to something that is not an integer.
+    """
+    return _env_number(name, default, int, "an integer")
+
+
+def env_float(name: str, default: float) -> float:
+    """
+    Read a float environment variable, treating a blank value as unset.
+
+    Raises:
+        ValueError: If the variable is set to something that is not a number.
+    """
+    return _env_number(name, default, float, "a number")
 
 
 def parse_bool(val: str | None, default: bool = True) -> bool:

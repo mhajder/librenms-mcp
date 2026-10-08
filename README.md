@@ -181,7 +181,7 @@ TOOL_SEARCH_MAX_RESULTS=5
 # SENTRY_DSN=https://your-key@o12345.ingest.us.sentry.io/6789
 # Optional Sentry configuration
 # SENTRY_TRACES_SAMPLE_RATE=1.0
-# SENTRY_SEND_DEFAULT_PII=true
+# SENTRY_SEND_DEFAULT_PII=false
 # SENTRY_ENVIRONMENT=production
 # SENTRY_RELEASE=1.2.3
 # SENTRY_PROFILE_SESSION_SAMPLE_RATE=1.0
@@ -189,7 +189,8 @@ TOOL_SEARCH_MAX_RESULTS=5
 # SENTRY_ENABLE_LOGS=true
 
 # MCP Transport Configuration
-# Transport type: 'stdio' (default), 'sse' (Server-Sent Events), or 'http' (HTTP Streamable)
+# Transport type: 'stdio' (default), 'sse' (Server-Sent Events), or 'http' (HTTP Streamable).
+# 'streamable-http' is accepted as an alias for 'http'. Any other value stops the server at startup.
 MCP_TRANSPORT=stdio
 
 # HTTP Transport Settings (used when MCP_TRANSPORT=sse or MCP_TRANSPORT=http)
@@ -437,8 +438,9 @@ SENTRY_DSN=https://your-key@o12345.ingest.us.sentry.io/6789
 # Optional: Performance monitoring sample rate (0.0-1.0, default: 1.0)
 SENTRY_TRACES_SAMPLE_RATE=1.0
 
-# Optional: Include personally identifiable information (default: true)
-SENTRY_SEND_DEFAULT_PII=true
+# Optional: Include personally identifiable information (default: false).
+# When true, tool inputs and outputs (device configs, SNMP credentials) are sent to Sentry.
+SENTRY_SEND_DEFAULT_PII=false
 
 # Optional: Environment name (e.g., "production", "staging")
 SENTRY_ENVIRONMENT=production
@@ -489,7 +491,7 @@ LIBRENMS_TIMEOUT=30         # Connection timeout in seconds
 
 ### Transport Configuration
 
-The server supports multiple transport mechanisms for the MCP protocol:
+The server supports multiple transport mechanisms for the MCP protocol. `MCP_TRANSPORT` is case-insensitive, `streamable-http` is accepted as an alias for `http`, and any other value stops the server at startup with an error rather than silently falling back to STDIO:
 
 #### STDIO Transport (Default)
 
@@ -538,6 +540,17 @@ curl -H "Authorization: Bearer your-secret-token" \
 ```
 
 **Note**: The HTTP transport requires proper JSON-RPC formatting with `jsonrpc` and `id` fields. The server may also require session initialization for some operations.
+
+#### Health Endpoint
+
+Both HTTP transports (`sse` and `http`) serve `GET /health`, which answers `200 ok`
+when the server is handling requests. It needs no bearer token and does not
+contact LibreNMS, so a LibreNMS outage does not mark the MCP server unhealthy.
+The Docker image's `HEALTHCHECK` uses it:
+
+```sh
+curl http://localhost:8000/health
+```
 
 For more information on FastMCP transports, see the [FastMCP documentation](https://gofastmcp.com/deployment/running-server#transport-protocols).
 

@@ -17,11 +17,17 @@ from fastmcp.server.auth.providers.jwt import StaticTokenVerifier
 from fastmcp.server.middleware.rate_limiting import SlidingWindowRateLimitingMiddleware
 from fastmcp.server.transforms.search import BM25SearchTransform
 from fastmcp.server.transforms.search import RegexSearchTransform
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
 
 from librenms_mcp.librenms_client import get_librenms_config_from_env
 from librenms_mcp.librenms_client import get_transport_config_from_env
 from librenms_mcp.sentry_init import init_sentry
 from librenms_mcp.tools import register_tools
+from librenms_mcp.utils import HEALTH_PATH
+from librenms_mcp.utils import HTTP_TRANSPORTS
+from librenms_mcp.utils import VALID_TRANSPORTS
+from librenms_mcp.utils import transport_help
 
 # Load environment variables
 load_dotenv()
@@ -29,9 +35,6 @@ load_dotenv()
 # Configure FastMCP defaults
 settings.show_server_banner = False
 settings.check_for_updates = "off"
-
-# Initialize optional Sentry monitoring
-init_sentry()
 
 # Configure logging. An unknown or lowercase LOG_LEVEL must not take the server
 # down, so resolve it leniently and fall back to INFO.
@@ -42,6 +45,10 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
+
+# Initialize optional Sentry monitoring. This runs after logging is configured
+# so that its "enabled" message is not dropped.
+init_sentry()
 
 if _resolved_log_level is None:
     logger.warning(
@@ -86,6 +93,20 @@ mcp = FastMCP(
     ),
     auth=auth_provider,
 )
+
+
+@mcp.custom_route(HEALTH_PATH, methods=["GET"], include_in_schema=False)
+async def health(_request: Request) -> PlainTextResponse:
+    """Liveness probe for the HTTP transports.
+
+    Answering proves the server handles requests, which a TCP connect does not:
+    the kernel completes the handshake even while the event loop is stuck. It
+    deliberately does not call LibreNMS, so an outage there does not get a
+    healthy MCP server restarted. FastMCP serves custom routes outside the
+    bearer-token auth, so the container healthcheck needs no token.
+    """
+    return PlainTextResponse("ok")
+
 
 # Register all tools
 register_tools(mcp, LNMS_CONFIG)
@@ -152,8 +173,16 @@ def main():
         )
         raise SystemExit(1)
 
+    if TRANSPORT_CONFIG.transport_type not in VALID_TRANSPORTS:
+        logger.error(
+            "Unknown MCP_TRANSPORT %r. Valid values: %s",
+            TRANSPORT_CONFIG.transport_type,
+            transport_help(),
+        )
+        raise SystemExit(1)
+
     if (
-        TRANSPORT_CONFIG.transport_type in {"sse", "http"}
+        TRANSPORT_CONFIG.transport_type in HTTP_TRANSPORTS
         and not TRANSPORT_CONFIG.http_bearer_token
     ):
         logger.warning(
@@ -191,7 +220,6 @@ def main():
             port=TRANSPORT_CONFIG.http_port,
         )
     else:
-        # Default to STDIO transport
         logger.info("Using STDIO transport")
         mcp.run()
 

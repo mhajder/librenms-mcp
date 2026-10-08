@@ -1,9 +1,14 @@
 """Guards for how the client reports responses it cannot decode."""
 
+import os
+import subprocess
+import sys
+
 import httpx2
 import pytest
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.librenms_client import get_transport_config_from_env
 from librenms_mcp.models import LibreNMSConfig
 
 
@@ -61,3 +66,64 @@ async def test_librenms_json_errors_are_returned_not_raised(mock_client):
     }
 
     await client.close()
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, "stdio"),
+        ("", "stdio"),
+        ("stdio", "stdio"),
+        ("SSE", "sse"),
+        ("http", "http"),
+        ("streamable-http", "http"),
+    ],
+)
+def test_transport_type_accepts_known_values(monkeypatch, raw, expected):
+    if raw is None:
+        monkeypatch.delenv("MCP_TRANSPORT", raising=False)
+    else:
+        monkeypatch.setenv("MCP_TRANSPORT", raw)
+    assert get_transport_config_from_env().transport_type == expected
+
+
+def test_unknown_transport_type_stops_main(tmp_path):
+    """A typo must not silently fall back to stdio and never bind the port.
+
+    It is rejected in main() rather than at import, because `fastmcp run`
+    imports the module but chooses the transport itself.
+    """
+    env = {
+        **os.environ,
+        "LIBRENMS_URL": "https://nms.invalid",
+        "LIBRENMS_TOKEN": "t",
+        "MCP_TRANSPORT": "websocket",
+    }
+    code = "import librenms_mcp.server as s; s.main()"
+    proc = subprocess.run(  # noqa: S603
+        [sys.executable, "-c", code],
+        env=env,
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert proc.returncode == 1
+    assert "Unknown MCP_TRANSPORT 'websocket'" in proc.stderr
+
+
+def test_unknown_transport_type_does_not_break_import(monkeypatch):
+    monkeypatch.setenv("MCP_TRANSPORT", "websocket")
+    assert get_transport_config_from_env().transport_type == "websocket"
+
+
+def test_blank_http_port_uses_default(monkeypatch):
+    monkeypatch.setenv("MCP_TRANSPORT", "http")
+    monkeypatch.setenv("MCP_HTTP_PORT", "")
+    assert get_transport_config_from_env().http_port == 8000
+
+
+def test_http_host_is_stripped_like_the_healthcheck_reads_it(monkeypatch):
+    monkeypatch.setenv("MCP_HTTP_HOST", " 0.0.0.0 ")
+    assert get_transport_config_from_env().http_host == "0.0.0.0"  # noqa: S104
