@@ -5,8 +5,8 @@ from fastmcp.exceptions import ToolError
 
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.tools.graphs import _graph_params
-from librenms_mcp.tools.graphs import _resolve_port_id
 from librenms_mcp.tools.graphs import _to_image
+from librenms_mcp.tools.port_lookup import resolve_port_id as _resolve_port_id
 
 
 @pytest.mark.parametrize(
@@ -106,3 +106,83 @@ async def test_resolve_port_id_matches_case_insensitively():
 async def test_resolve_port_id_raises_when_absent(payload):
     with pytest.raises(ToolError, match="No interface named"):
         await _resolve_port_id(_as_client(_FakeClient(payload)), "sw1", "Po1")
+
+
+@pytest.mark.asyncio
+async def test_resolve_port_id_surfaces_librenms_errors():
+    """An auth or lookup failure must not be reported as a missing interface.
+
+    The client marks framework errors (a bare message) with status "error" too,
+    so this one shape covers both.
+    """
+    client = _FakeClient({"status": "error", "message": "Unauthenticated."})
+    with pytest.raises(ToolError, match="Unauthenticated"):
+        await _resolve_port_id(_as_client(client), "sw1", "Po1")
+
+
+@pytest.mark.asyncio
+async def test_resolve_port_id_prefers_the_exact_name():
+    client = _FakeClient(
+        {
+            "ports": [
+                {"port_id": 1, "ifName": "TE2/7"},
+                {"port_id": 2, "ifName": "Te2/7"},
+            ]
+        }
+    )
+    assert await _resolve_port_id(_as_client(client), "sw1", "Te2/7") == 2
+
+
+@pytest.mark.asyncio
+async def test_resolve_port_id_rejects_ambiguous_case_insensitive_names():
+    """'te2/7' must not silently pick one of two differently-cased ports."""
+    client = _FakeClient(
+        {
+            "ports": [
+                {"port_id": 1, "ifName": "TE2/7"},
+                {"port_id": 2, "ifName": "Te2/7"},
+            ]
+        }
+    )
+    with pytest.raises(
+        ToolError, match=r"ambiguous.*'TE2/7' \(port_id 1\), 'Te2/7' \(port_id 2\)"
+    ):
+        await _resolve_port_id(_as_client(client), "sw1", "te2/7")
+
+
+@pytest.mark.asyncio
+async def test_resolve_port_id_finds_padded_vendor_names():
+    """A device may report 'Gi0/1 '; the exact name as given must still match."""
+    client = _FakeClient(
+        {
+            "ports": [
+                {"port_id": 1, "ifName": "Gi0/1"},
+                {"port_id": 2, "ifName": "Gi0/1 "},
+            ]
+        }
+    )
+    assert await _resolve_port_id(_as_client(client), "sw1", "Gi0/1 ") == 2
+    assert await _resolve_port_id(_as_client(client), "sw1", "Gi0/1") == 1
+
+
+@pytest.mark.asyncio
+async def test_resolve_port_id_rejects_duplicate_exact_names():
+    """Stacked switches can report one ifName twice; never pick one silently."""
+    client = _FakeClient(
+        {
+            "ports": [
+                {"port_id": 1, "ifName": "Te2/7"},
+                {"port_id": 5, "ifName": "Te2/7"},
+            ]
+        }
+    )
+    with pytest.raises(ToolError, match=r"ambiguous.*port_id 1.*port_id 5"):
+        await _resolve_port_id(_as_client(client), "sw1", "Te2/7")
+
+
+@pytest.mark.asyncio
+async def test_resolve_port_id_does_not_strip_the_name():
+    """Names are matched as given; ' Te2/7 ' is not silently 'Te2/7'."""
+    client = _FakeClient({"ports": [{"port_id": 7, "ifName": "Te2/7"}]})
+    with pytest.raises(ToolError, match="No interface named"):
+        await _resolve_port_id(_as_client(client), "sw1", " Te2/7 ")

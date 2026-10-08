@@ -11,6 +11,7 @@ from fastmcp.utilities.types import Image
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.port_lookup import with_port_id_fallback
 
 # Graph endpoints return an image, so a failure cannot be reported as a dict the
 # way the JSON tools do. They raise ToolError instead.
@@ -65,18 +66,17 @@ def _graph_params(
     return params
 
 
-async def _resolve_port_id(client: LibreNMSClient, hostname: str, ifname: str) -> int:
-    """Look up the numeric port ID behind a device hostname and interface name."""
-    result = await client.get(
-        "devices",
-        hostname,
-        "ports",
-        params={"columns": "port_id,ifName"},
-    )
-    for port in result.get("ports") or []:
-        if str(port.get("ifName", "")).casefold() == ifname.casefold():
-            return int(port["port_id"])
-    raise ToolError(f"No interface named '{ifname}' found on {hostname}.")
+def _port_graph_type(graph_type: str) -> str:
+    """Map a port graph type to the name LibreNMS expects.
+
+    LibreNMS names port graphs 'port_bits', 'port_errors' and so on, and answers
+    a bare 'bits' with a 500. Models naturally use the short names, so both
+    spellings are accepted.
+    """
+    name = graph_type.strip().lower()
+    if name in ("", "port_"):
+        raise ToolError("graph_type is required, e.g. 'bits' or 'errors'.")
+    return name if name.startswith("port_") else f"port_{name}"
 
 
 def _to_image(data: bytes, content_type: str) -> Image:
@@ -212,7 +212,7 @@ def register_graph_tools(mcp, config):
             str,
             Field(
                 default="bits",
-                description="Graph type: 'bits' (traffic), 'upkts' (unicast packets), 'errors', or 'etherlike'",
+                description="Graph type: 'bits' (traffic), 'upkts' (unicast packets), 'nupkts' (non-unicast packets), 'errors', or 'etherlike'. The LibreNMS names ('port_bits', ...) are accepted too.",
             ),
         ] = "bits",
         from_time: FromField = None,
@@ -224,15 +224,15 @@ def register_graph_tools(mcp, config):
         """
         Render a per-port graph as an image, for example interface traffic.
 
-        Some LibreNMS releases fail to render through the per-port endpoint and
-        answer 500 with an empty graph type in the message. For 'bits' this tool
-        then falls back to the port-group endpoint, which renders the same
-        traffic data, so callers still get a graph without needing a port ID.
+        Names like 'Te2/7' can fail by name behind proxies that reject or decode
+        the encoded slash. For 'bits' this tool then falls back to the port-group
+        endpoint, which renders the same traffic data by port ID, so callers
+        still get a graph.
 
         Args:
             hostname (str): Device hostname or device ID.
             ifname (str): Interface name, e.g. 'Po1' or 'Te2/7'.
-            graph_type (str): bits, upkts, errors or etherlike.
+            graph_type (str): bits, upkts, nupkts, errors or etherlike.
             from_time (str, optional): Start of the time range, e.g. '-1d'.
             to_time (str, optional): End of the time range.
             width (int, optional): Graph width in pixels.
@@ -243,30 +243,34 @@ def register_graph_tools(mcp, config):
             Image: The rendered graph.
         """
         params = _graph_params(from_time, to_time, width, height, legend)
+        librenms_type = _port_graph_type(graph_type)
         try:
             await ctx.info(f"Rendering {graph_type} graph for {hostname} {ifname}...")
 
             async with LibreNMSClient(config) as client:
-                try:
-                    data, content_type = await client.get_raw(
+
+                async def by_name() -> tuple[bytes, str]:
+                    return await client.get_raw(
                         "devices",
                         hostname,
                         "ports",
                         ifname,
-                        graph_type,
+                        librenms_type,
                         params=params,
                     )
-                except Exception as e:
-                    # Only 'bits' has a port-group equivalent to fall back to.
-                    if graph_type != "bits":
-                        raise
-                    await ctx.info(
-                        f"Per-port graph endpoint failed ({e!s}); retrying via the port-group endpoint..."
-                    )
-                    port_id = await _resolve_port_id(client, hostname, ifname)
-                    data, content_type = await client.get_raw(
+
+                async def by_id(port_id: int) -> tuple[bytes, str]:
+                    return await client.get_raw(
                         "portgroups", "multiport", "bits", port_id, params=params
                     )
+
+                # Only 'bits' has a port-ID equivalent.
+                if librenms_type == "port_bits":
+                    data, content_type = await with_port_id_fallback(
+                        client, hostname, ifname, by_name, by_id, ctx.info
+                    )
+                else:
+                    data, content_type = await by_name()
                 return _to_image(data, content_type)
 
         except ToolError:

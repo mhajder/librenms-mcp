@@ -9,6 +9,8 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.librenms_client import LibreNMSHTTPError
+from librenms_mcp.tools.port_lookup import with_port_id_fallback
 from librenms_mcp.utils import paginate_list
 
 
@@ -332,6 +334,11 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         """
         Get port info for a device by interface name.
 
+        Names like 'Te2/7' can fail by name behind proxies that reject or decode
+        the encoded slash. The port is then looked up by ID instead; that
+        response has the same shape but lacks the computed rate fields
+        (in_rate, out_rate, ...).
+
         Args:
             hostname (str): Device hostname.
             ifname (str): Interface name.
@@ -343,7 +350,29 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info(f"Getting port {ifname} on {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("devices", hostname, "ports", ifname)
+
+                async def by_name() -> dict:
+                    return await client.get(
+                        "devices", hostname, "ports", ifname, raise_for_status=True
+                    )
+
+                async def by_id(port_id: int) -> dict:
+                    result = await client.get("ports", port_id, raise_for_status=True)
+                    # ports/{id} wraps the port in a list; match the by-name shape.
+                    ports = result.get("port") if isinstance(result, dict) else None
+                    if isinstance(ports, list):
+                        result["port"] = ports[0] if ports else None
+                    return result
+
+                try:
+                    return await with_port_id_fallback(
+                        client, hostname, ifname, by_name, by_id, ctx.info
+                    )
+                except LibreNMSHTTPError as e:
+                    # A real answer: return the LibreNMS error body as is.
+                    if e.body is not None:
+                        return e.body
+                    raise
 
         except Exception as e:
             await ctx.error(f"Error getting port {ifname} on {hostname}: {e!s}")

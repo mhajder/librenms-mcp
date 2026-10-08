@@ -10,6 +10,9 @@ from pydantic import Field
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.utils import paginate_list
 
+# The fields LibreNMS searches when ports/search is given only a search term.
+PORT_SEARCH_DEFAULT_FIELDS = "ifAlias,ifDescr,ifName"
+
 
 def register_port_tools(mcp, config):
     """Register LibreNMS port tools with the MCP server"""
@@ -125,7 +128,18 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Searching ports {search}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("ports", "search", search)
+                # The route is ports/search/{field}/{search?}, and LibreNMS
+                # decodes %2F, so a lone 'Ethernet1/1' would be split into field
+                # 'Ethernet1' and search '1'. For such terms, name the default
+                # fields; the {search} part may contain slashes. Other terms keep
+                # the one-part form: LibreNMS treats a search of "0" as empty
+                # and would then read "0" as the field list.
+                if "/" in search:
+                    result = await client.get(
+                        "ports", "search", PORT_SEARCH_DEFAULT_FIELDS, search
+                    )
+                else:
+                    result = await client.get("ports", "search", search)
             return paginate_list(result, limit, offset, key="ports")
 
         except Exception as e:
