@@ -92,7 +92,7 @@ def register_logs_tools(mcp, config):
             await ctx.info(f"Getting event logs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"logs/eventlog/{hostname}", params=params)
+                result = await client.get("logs", "eventlog", hostname, params=params)
 
             if isinstance(result, dict) and result.get("status") == "ok":
                 list_keys = [k for k, v in result.items() if isinstance(v, list)]
@@ -181,7 +181,7 @@ def register_logs_tools(mcp, config):
             await ctx.info(f"Getting syslogs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"logs/syslog/{hostname}", params=params)
+                result = await client.get("logs", "syslog", hostname, params=params)
 
             if isinstance(result, dict) and result.get("status") == "ok":
                 list_keys = [k for k, v in result.items() if isinstance(v, list)]
@@ -270,7 +270,7 @@ def register_logs_tools(mcp, config):
             await ctx.info(f"Getting alert logs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"logs/alertlog/{hostname}", params=params)
+                result = await client.get("logs", "alertlog", hostname, params=params)
 
             if isinstance(result, dict) and result.get("status") == "ok":
                 list_keys = [k for k, v in result.items() if isinstance(v, list)]
@@ -359,7 +359,7 @@ def register_logs_tools(mcp, config):
             await ctx.info("Getting auth logs ...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("logs/authlog", params=params)
+                result = await client.get("logs", "authlog", params=params)
 
             if isinstance(result, dict) and result.get("status") == "ok":
                 list_keys = [k for k, v in result.items() if isinstance(v, list)]

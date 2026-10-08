@@ -4,7 +4,6 @@ LibreNMS MCP Server Graph Tools
 
 from typing import Annotated
 from typing import Any
-from urllib.parse import quote
 
 from fastmcp.exceptions import ToolError
 from fastmcp.server.context import Context
@@ -69,7 +68,9 @@ def _graph_params(
 async def _resolve_port_id(client: LibreNMSClient, hostname: str, ifname: str) -> int:
     """Look up the numeric port ID behind a device hostname and interface name."""
     result = await client.get(
-        f"devices/{quote(hostname, safe='')}/ports",
+        "devices",
+        hostname,
+        "ports",
         params={"columns": "port_id,ifName"},
     )
     for port in result.get("ports") or []:
@@ -126,7 +127,7 @@ def register_graph_tools(mcp, config):
             await ctx.info(f"Listing available graphs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"devices/{quote(hostname, safe='')}/graphs")
+                return await client.get("devices", hostname, "graphs")
 
         except Exception as e:
             await ctx.error(f"Error listing graphs for {hostname}: {e!s}")
@@ -175,7 +176,9 @@ def register_graph_tools(mcp, config):
 
             async with LibreNMSClient(config) as client:
                 data, content_type = await client.get_raw(
-                    f"devices/{quote(hostname, safe='')}/{quote(graph_type, safe='')}",
+                    "devices",
+                    hostname,
+                    graph_type,
                     params=_graph_params(from_time, to_time, width, height, legend),
                 )
                 return _to_image(data, content_type)
@@ -246,7 +249,11 @@ def register_graph_tools(mcp, config):
             async with LibreNMSClient(config) as client:
                 try:
                     data, content_type = await client.get_raw(
-                        f"devices/{quote(hostname, safe='')}/ports/{quote(ifname, safe='')}/{quote(graph_type, safe='')}",
+                        "devices",
+                        hostname,
+                        "ports",
+                        ifname,
+                        graph_type,
                         params=params,
                     )
                 except Exception as e:
@@ -258,7 +265,7 @@ def register_graph_tools(mcp, config):
                     )
                     port_id = await _resolve_port_id(client, hostname, ifname)
                     data, content_type = await client.get_raw(
-                        f"portgroups/multiport/bits/{port_id}", params=params
+                        "portgroups", "multiport", "bits", port_id, params=params
                     )
                 return _to_image(data, content_type)
 
@@ -319,7 +326,10 @@ def register_graph_tools(mcp, config):
 
             async with LibreNMSClient(config) as client:
                 data, content_type = await client.get_raw(
-                    f"portgroups/multiport/bits/{quote(ids, safe='')}",
+                    "portgroups",
+                    "multiport",
+                    "bits",
+                    ids,
                     params=_graph_params(from_time, to_time, width, height, legend),
                 )
                 return _to_image(data, content_type)

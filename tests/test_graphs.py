@@ -80,10 +80,10 @@ class _FakeClient:
 
     def __init__(self, payload: dict) -> None:
         self._payload = payload
-        self.calls: list[tuple[str, dict | None]] = []
+        self.calls: list[tuple[tuple[str | int, ...], dict | None]] = []
 
-    async def get(self, path: str, params: dict | None = None) -> dict:
-        self.calls.append((path, params))
+    async def get(self, *segments: str | int, params: dict | None = None) -> dict:
+        self.calls.append((segments, params))
         return self._payload
 
 
@@ -96,14 +96,9 @@ def _as_client(fake: _FakeClient) -> LibreNMSClient:
 async def test_resolve_port_id_matches_case_insensitively():
     client = _FakeClient({"ports": [{"port_id": 7, "ifName": "Te2/7"}]})
     assert await _resolve_port_id(_as_client(client), "sw1", "te2/7") == 7
-    assert client.calls == [("devices/sw1/ports", {"columns": "port_id,ifName"})]
-
-
-@pytest.mark.asyncio
-async def test_resolve_port_id_encodes_hostname():
-    client = _FakeClient({"ports": [{"port_id": 1, "ifName": "Po1"}]})
-    await _resolve_port_id(_as_client(client), "sw 1/a", "Po1")
-    assert client.calls[0][0] == "devices/sw%201%2Fa/ports"
+    assert client.calls == [
+        (("devices", "sw1", "ports"), {"columns": "port_id,ifName"})
+    ]
 
 
 @pytest.mark.asyncio

@@ -2,6 +2,7 @@ import os
 from collections.abc import Callable
 from typing import Any
 from typing import TypeVar
+from urllib.parse import quote
 
 TRUTHY_VALUES = ("1", "true", "yes", "on")
 
@@ -60,6 +61,37 @@ def transport_help() -> str:
     return ", ".join(TRANSPORT_ALIASES)
 
 
+def path_segment(value: str | int) -> str:
+    """
+    Encode a value for use as a single LibreNMS API path segment.
+
+    Tool arguments come from the model and may be prompt-injected, so every
+    reserved character (``/``, ``?``, ``#``, ...) is percent-encoded to keep the
+    value from reaching a different endpoint. Dot-segments are rejected outright:
+    a bare ``.`` or ``..`` survives encoding and is resolved by the HTTP client,
+    and a value such as ``../../system`` is resolved by any reverse proxy that
+    decodes ``%2F`` before normalizing the path. The value is otherwise sent
+    exactly as given: interface names can legitimately carry surrounding
+    spaces, and silently stripping them could address a different object. A
+    blank value is rejected.
+
+    Args:
+        value: The raw path segment value.
+
+    Returns:
+        str: The percent-encoded segment.
+
+    Raises:
+        ValueError: If the value is blank or contains a ``.`` or ``..`` part.
+    """
+    text = str(value)
+    # Backslashes count as separators too: some servers normalize them to '/'.
+    parts = text.replace("\\", "/").split("/")
+    if not text.strip() or any(part in (".", "..") for part in parts):
+        raise ValueError(f"Invalid path segment: {str(value)!r}")
+    return quote(text, safe="")
+
+
 _Number = TypeVar("_Number", int, float)
 
 
@@ -97,6 +129,18 @@ def env_float(name: str, default: float) -> float:
         ValueError: If the variable is set to something that is not a number.
     """
     return _env_number(name, default, float, "a number")
+
+
+def optional_segment(value: str | None) -> tuple[str, ...]:
+    """
+    Return a trailing path segment only when the value is set.
+
+    For LibreNMS routes whose last segment is optional (``oxidized/{hostname?}``,
+    ``logs/eventlog/{hostname?}``): spread the result into the client call, as in
+    ``client.get("oxidized", *optional_segment(hostname))``. A blank value
+    counts as unset, so the route lists everything.
+    """
+    return (value,) if value is not None and value.strip() else ()
 
 
 def parse_bool(val: str | None, default: bool = True) -> bool:

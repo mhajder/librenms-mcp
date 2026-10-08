@@ -4,7 +4,9 @@ from librenms_mcp.utils import env_float
 from librenms_mcp.utils import env_int
 from librenms_mcp.utils import http_host_from_env
 from librenms_mcp.utils import normalize_transport
+from librenms_mcp.utils import optional_segment
 from librenms_mcp.utils import parse_bool
+from librenms_mcp.utils import path_segment
 
 
 @pytest.mark.parametrize(
@@ -107,6 +109,36 @@ def test_paginate_list_error_and_invalid():
 
 
 @pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("core1", "core1"),
+        ("10.0.0.1", "10.0.0.1"),
+        ("rules/5", "rules%2F5"),
+        ("sw#1", "sw%231"),
+        ("a?b=c", "a%3Fb%3Dc"),
+        ("Te2/7", "Te2%2F7"),
+        ("...", "..."),
+        # Sent as given: interface names can carry real surrounding spaces.
+        (" sw1 ", "%20sw1%20"),
+        (" .. ", "%20..%20"),
+        (42, "42"),
+    ],
+)
+def test_path_segment_encodes_reserved_characters(value, expected):
+    assert path_segment(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["", "   ", ".", "..", "../../system", "a/../b", "./x", "..\\x"],
+)
+def test_path_segment_rejects_dot_segments(value):
+    # These survive percent-encoding and would be resolved as dot-segments.
+    with pytest.raises(ValueError, match="Invalid path segment"):
+        path_segment(value)
+
+
+@pytest.mark.parametrize(
     ("raw", "expected"),
     [(None, 30), ("", 30), ("   ", 30), ("45", 45), (" 45 ", 45)],
 )
@@ -158,6 +190,20 @@ def test_env_float_names_the_variable_on_bad_input(monkeypatch):
     monkeypatch.setenv("LIBRENMS_TEST_FLOAT", "lots")
     with pytest.raises(ValueError, match="LIBRENMS_TEST_FLOAT must be a number"):
         env_float("LIBRENMS_TEST_FLOAT", 1.0)
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (None, ()),
+        ("", ()),
+        ("  ", ()),
+        ("core1", ("core1",)),
+        (" core1 ", (" core1 ",)),
+    ],
+)
+def test_optional_segment(value, expected):
+    assert optional_segment(value) == expected
 
 
 @pytest.mark.parametrize(

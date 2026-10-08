@@ -43,7 +43,7 @@ def register_poller_tools(mcp, config):
             await ctx.info(f"Getting poller group {poller_group}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"poller_group/{poller_group}")
+                return await client.get("poller_group", poller_group)
 
         except Exception as e:
             await ctx.error(f"Error poller group {poller_group}: {e!s}")

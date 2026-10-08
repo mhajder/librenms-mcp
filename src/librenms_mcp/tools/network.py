@@ -4,12 +4,12 @@ LibreNMS MCP Server Network Tools
 
 from typing import Annotated
 from typing import Any
-from urllib.parse import quote
 
 from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import optional_segment
 from librenms_mcp.utils import paginate_list
 
 
@@ -67,7 +67,7 @@ def register_network_tools(mcp, config):
             await ctx.info(f"Searching ARP entries with query: {query}")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"resources/ip/arp/{quote(query, safe='')}")
+                result = await client.get("resources", "ip", "arp", query)
             return paginate_list(result, limit, offset)
 
         except Exception as e:
@@ -207,7 +207,7 @@ def register_network_tools(mcp, config):
             await ctx.info(f"Getting BGP session {bgp_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"bgp/{bgp_id}")
+                return await client.get("bgp", bgp_id)
 
         except Exception as e:
             await ctx.error(f"Error BGP session {bgp_id}: {e!s}")
@@ -245,7 +245,7 @@ def register_network_tools(mcp, config):
             await ctx.info(f"Editing BGP session {bgp_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.post(f"bgp/{bgp_id}", data=payload)
+                return await client.post("bgp", bgp_id, data=payload)
 
         except Exception as e:
             await ctx.error(f"Error editing BGP {bgp_id}: {e!s}")
@@ -288,7 +288,7 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing IP addresses...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("resources/ip/addresses")
+                result = await client.get("resources", "ip", "addresses")
             return paginate_list(result, limit, offset)
 
         except Exception as e:
@@ -336,7 +336,7 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing VLANs...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("resources/vlans")
+                result = await client.get("resources", "vlans")
             return paginate_list(result, limit, offset)
 
         except Exception as e:
@@ -380,7 +380,7 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing links...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("resources/links")
+                result = await client.get("resources", "links")
             return paginate_list(result, limit, offset)
 
         except Exception as e:
@@ -421,7 +421,7 @@ def register_network_tools(mcp, config):
             await ctx.info(f"Looking up FDB entry for MAC {mac}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"resources/fdb/{quote(mac, safe='')}")
+                return await client.get("resources", "fdb", mac)
 
         except Exception as e:
             await ctx.error(f"Error looking up FDB for {mac}: {e!s}")
@@ -560,7 +560,7 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing VRF instances...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("routing/vrf")
+                result = await client.get("routing", "vrf")
             return paginate_list(result, limit, offset)
 
         except Exception as e:
@@ -615,10 +615,7 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing NAC sessions...")
 
             async with LibreNMSClient(config) as client:
-                path = (
-                    f"resources/nac/{quote(mac, safe='')}" if mac else "resources/nac"
-                )
-                result = await client.get(path)
+                result = await client.get("resources", "nac", *optional_segment(mac))
             return paginate_list(result, limit, offset)
 
         except Exception as e:

@@ -135,7 +135,7 @@ def register_alert_tools(mcp, config):
             await ctx.info(f"Retrieving alert {alert_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"alerts/{alert_id}")
+                return await client.get("alerts", alert_id)
 
         except Exception as e:
             await ctx.error(f"Error retrieving alert {alert_id}: {e!s}")
@@ -188,7 +188,7 @@ def register_alert_tools(mcp, config):
             await ctx.info(f"Acknowledging alert {alert_id}")
 
             async with LibreNMSClient(config) as client:
-                return await client.put(f"alerts/{alert_id}", data=data or None)
+                return await client.put("alerts", alert_id, data=data or None)
 
         except Exception as e:
             await ctx.error(f"Error acknowledging alert {alert_id}: {e!s}")
@@ -219,7 +219,7 @@ def register_alert_tools(mcp, config):
             await ctx.info(f"Unmuting alert {alert_id}")
 
             async with LibreNMSClient(config) as client:
-                return await client.put(f"alerts/unmute/{alert_id}")
+                return await client.put("alerts", "unmute", alert_id)
 
         except Exception as e:
             await ctx.error(f"Error unmuting alert {alert_id}: {e!s}")
@@ -298,7 +298,7 @@ def register_alert_tools(mcp, config):
             await ctx.info(f"Getting details for rule {rule_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"rules/{rule_id}")
+                return await client.get("rules", rule_id)
 
         except Exception as e:
             await ctx.error(f"Error getting rule {rule_id}: {e!s}")
@@ -427,7 +427,7 @@ Example:
             await ctx.info(f"Deleting rule {rule_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.delete(f"rules/{rule_id}")
+                return await client.delete("rules", rule_id)
 
         except Exception as e:
             await ctx.error(f"Error deleting rule {rule_id}: {e!s}")
@@ -506,7 +506,7 @@ Example:
             await ctx.info(f"Getting alert template {template_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"alert_templates/{template_id}")
+                return await client.get("alert_templates", template_id)
 
         except Exception as e:
             await ctx.error(f"Error getting alert template {template_id}: {e!s}")

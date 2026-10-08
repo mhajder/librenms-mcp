@@ -3,7 +3,6 @@ LibreNMS MCP Server Port Tools
 """
 
 from typing import Annotated
-from urllib.parse import quote
 
 from fastmcp.server.context import Context
 from pydantic import Field
@@ -126,7 +125,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Searching ports {search}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"ports/search/{quote(search, safe='')}")
+                result = await client.get("ports", "search", search)
             return paginate_list(result, limit, offset, key="ports")
 
         except Exception as e:
@@ -183,9 +182,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Searching ports {field}={search}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(
-                    f"ports/search/{quote(field, safe='')}/{quote(search, safe='')}"
-                )
+                result = await client.get("ports", "search", field, search)
             return paginate_list(result, limit, offset, key="ports")
 
         except Exception as e:
@@ -240,7 +237,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Searching ports by MAC address {mac}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"ports/mac/{quote(mac, safe='')}")
+                result = await client.get("ports", "mac", mac)
             return paginate_list(result, limit, offset, key="ports")
 
         except Exception as e:
@@ -269,7 +266,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Getting port {port_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"ports/{port_id}")
+                return await client.get("ports", port_id)
 
         except Exception as e:
             await ctx.error(f"Error port {port_id}: {e!s}")
@@ -297,7 +294,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Getting port IP info {port_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"ports/{port_id}/ip")
+                return await client.get("ports", port_id, "ip")
 
         except Exception as e:
             await ctx.error(f"Error port IP {port_id}: {e!s}")
@@ -327,7 +324,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Getting port transceiver info {port_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"ports/{port_id}/transceiver")
+                return await client.get("ports", port_id, "transceiver")
 
         except Exception as e:
             await ctx.error(f"Error transceiver {port_id}: {e!s}")
@@ -357,7 +354,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Getting port description {port_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"ports/{port_id}/description")
+                return await client.get("ports", port_id, "description")
 
         except Exception as e:
             await ctx.error(f"Error description {port_id}: {e!s}")
@@ -395,7 +392,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Updating port description {port_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.patch(f"ports/{port_id}/description", data=payload)
+                return await client.patch("ports", port_id, "description", data=payload)
 
         except Exception as e:
             await ctx.error(f"Error updating description {port_id}: {e!s}")
@@ -530,7 +527,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Getting ports in group {name}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"port_groups/{quote(name, safe='')}")
+                result = await client.get("port_groups", name)
             return paginate_list(result, limit, offset)
 
         except Exception as e:
@@ -568,7 +565,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
             async with LibreNMSClient(config) as client:
                 return await client.post(
-                    f"port_groups/{port_group_id}/assign", data=payload
+                    "port_groups", port_group_id, "assign", data=payload
                 )
 
         except Exception as e:
@@ -606,7 +603,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
             async with LibreNMSClient(config) as client:
                 return await client.post(
-                    f"port_groups/{port_group_id}/remove", data=payload
+                    "port_groups", port_group_id, "remove", data=payload
                 )
 
         except Exception as e:
@@ -655,7 +652,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Listing FDB entries for port {port_id}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"ports/{port_id}/fdb")
+                result = await client.get("ports", port_id, "fdb")
                 return paginate_list(result, limit, offset, key="macs")
 
         except Exception as e:

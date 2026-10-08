@@ -3,7 +3,6 @@ LibreNMS MCP Server Location Tools
 """
 
 from typing import Annotated
-from urllib.parse import quote
 
 from fastmcp.server.context import Context
 from pydantic import Field
@@ -59,7 +58,7 @@ def register_location_tools(mcp, config):
             await ctx.info("Listing locations...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("resources/locations")
+                result = await client.get("resources", "locations")
             return paginate_list(result, limit, offset, key="locations")
 
         except Exception as e:
@@ -131,7 +130,7 @@ def register_location_tools(mcp, config):
             await ctx.info(f"Deleting location {location}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.delete(f"locations/{quote(location, safe='')}")
+                return await client.delete("locations", location)
 
         except Exception as e:
             await ctx.error(f"Error deleting location {location}: {e!s}")
@@ -171,9 +170,7 @@ def register_location_tools(mcp, config):
             await ctx.info(f"Editing location {location}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.patch(
-                    f"locations/{quote(location, safe='')}", data=payload
-                )
+                return await client.patch("locations", location, data=payload)
 
         except Exception as e:
             await ctx.error(f"Error editing location {location}: {e!s}")
@@ -204,7 +201,7 @@ def register_location_tools(mcp, config):
             await ctx.info(f"Getting location {location}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"location/{quote(location, safe='')}")
+                return await client.get("location", location)
 
         except Exception as e:
             await ctx.error(f"Error getting location {location}: {e!s}")
@@ -251,7 +248,7 @@ def register_location_tools(mcp, config):
 
             async with LibreNMSClient(config) as client:
                 return await client.post(
-                    f"locations/{quote(location, safe='')}/maintenance", data=payload
+                    "locations", location, "maintenance", data=payload
                 )
 
         except Exception as e:
