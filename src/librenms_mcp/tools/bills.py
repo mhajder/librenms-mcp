@@ -125,7 +125,7 @@ def register_bill_tools(mcp, config):
         try:
             await ctx.info(f"Getting bill {bill_id}...")
             async with LibreNMSClient(config) as client:
-                return await client.get(f"bills/{bill_id}", params=params)
+                return await client.get("bills", bill_id, params=params)
 
         except Exception as e:
             await ctx.error(f"Error getting bill {bill_id}: {e!s}")
@@ -164,7 +164,7 @@ def register_bill_tools(mcp, config):
 
             async with LibreNMSClient(config) as client:
                 data, content_type = await client.get_raw(
-                    f"bills/{bill_id}/graphs/{graph_type}"
+                    "bills", bill_id, "graphs", graph_type
                 )
                 return _to_image(data, content_type)
 
@@ -206,7 +206,7 @@ def register_bill_tools(mcp, config):
             await ctx.info(f"Getting bill graph data {bill_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"bills/{bill_id}/graphdata/{graph_type}")
+                return await client.get("bills", bill_id, "graphdata", graph_type)
 
         except Exception as e:
             await ctx.error(f"Error bill graph data {bill_id}: {e!s}")
@@ -255,7 +255,7 @@ def register_bill_tools(mcp, config):
             await ctx.info(f"Getting bill history {bill_id}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"bills/{bill_id}/history")
+                result = await client.get("bills", bill_id, "history")
             return paginate_list(result, limit, offset)
 
         except Exception as e:
@@ -298,7 +298,7 @@ def register_bill_tools(mcp, config):
 
             async with LibreNMSClient(config) as client:
                 data, content_type = await client.get_raw(
-                    f"bills/{bill_id}/history/{history_id}/graphs/{graph_type}"
+                    "bills", bill_id, "history", history_id, "graphs", graph_type
                 )
                 return _to_image(data, content_type)
 
@@ -344,7 +344,7 @@ def register_bill_tools(mcp, config):
 
             async with LibreNMSClient(config) as client:
                 return await client.get(
-                    f"bills/{bill_id}/history/{history_id}/graphdata/{graph_type}"
+                    "bills", bill_id, "history", history_id, "graphdata", graph_type
                 )
 
         except Exception as e:
@@ -422,7 +422,7 @@ def register_bill_tools(mcp, config):
             await ctx.info(f"Deleting bill {bill_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.delete(f"bills/{bill_id}")
+                return await client.delete("bills", bill_id)
 
         except Exception as e:
             await ctx.error(f"Error deleting bill {bill_id}: {e!s}")

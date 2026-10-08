@@ -149,7 +149,7 @@ def register_service_tools(mcp, config):
             await ctx.info(f"Getting services for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"services/{hostname}", params=params or None)
+                result = await client.get("services", hostname, params=params or None)
             return paginate_list(result, limit, offset, key="services")
 
         except Exception as e:
@@ -195,7 +195,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             await ctx.info(f"Adding service for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.post(f"services/{hostname}", data=payload)
+                return await client.post("services", hostname, data=payload)
 
         except Exception as e:
             await ctx.error(f"Error adding service {hostname}: {e!s}")
@@ -238,7 +238,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             await ctx.info(f"Editing service {service_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.patch(f"services/{service_id}", data=payload)
+                return await client.patch("services", service_id, data=payload)
 
         except Exception as e:
             await ctx.error(f"Error editing service {service_id}: {e!s}")
@@ -268,7 +268,7 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             await ctx.info(f"Deleting service {service_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.delete(f"services/{service_id}")
+                return await client.delete("services", service_id)
 
         except Exception as e:
             await ctx.error(f"Error deleting service {service_id}: {e!s}")

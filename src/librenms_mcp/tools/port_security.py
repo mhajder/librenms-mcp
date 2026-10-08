@@ -3,7 +3,6 @@ LibreNMS MCP Server Port Security Tools
 """
 
 from typing import Annotated
-from urllib.parse import quote
 
 from fastmcp.server.context import Context
 from pydantic import Field
@@ -104,9 +103,7 @@ def register_port_security_tools(mcp, config):
             await ctx.info(f"Getting port security for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(
-                    f"port_security/device/{quote(hostname, safe='')}"
-                )
+                result = await client.get("port_security", "device", hostname)
                 return paginate_list(result, limit, offset, key="port")
 
         except Exception as e:
@@ -138,7 +135,7 @@ def register_port_security_tools(mcp, config):
             await ctx.info(f"Getting port security for port {port_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(f"port_security/port/{port_id}")
+                return await client.get("port_security", "port", port_id)
 
         except Exception as e:
             await ctx.error(f"Error getting port security for port {port_id}: {e!s}")

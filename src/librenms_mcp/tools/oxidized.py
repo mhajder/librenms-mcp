@@ -3,12 +3,12 @@ LibreNMS MCP Server Oxidized Tools
 """
 
 from typing import Annotated
-from urllib.parse import quote
 
 from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import optional_segment
 from librenms_mcp.utils import paginate_list
 
 
@@ -64,10 +64,7 @@ def register_oxidized_tools(mcp, config):
             await ctx.info("Listing Oxidized devices...")
 
             async with LibreNMSClient(config) as client:
-                path = (
-                    f"oxidized/{quote(hostname, safe='')}" if hostname else "oxidized"
-                )
-                result = await client.get(path)
+                result = await client.get("oxidized", *optional_segment(hostname))
                 if isinstance(result, list):
                     result = {"devices": result}
                 return paginate_list(result, limit, offset, key="devices")
@@ -101,7 +98,7 @@ def register_oxidized_tools(mcp, config):
             await ctx.info(f"Getting Oxidized config for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"oxidized/config/{quote(hostname, safe='')}")
+                result = await client.get("oxidized", "config", hostname)
                 if isinstance(result, list):
                     return {"configs": result}
                 return result
@@ -158,9 +155,7 @@ def register_oxidized_tools(mcp, config):
             await ctx.info(f"Searching Oxidized configs for '{search}'...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(
-                    f"oxidized/config/search/{quote(search, safe='')}"
-                )
+                result = await client.get("oxidized", "config", "search", search)
                 # LibreNMS returns the matches under "nodes".
                 if isinstance(result, list):
                     result = {"nodes": result}

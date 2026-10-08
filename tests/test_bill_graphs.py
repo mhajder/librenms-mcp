@@ -38,8 +38,8 @@ class _FakeClient:
     async def __aexit__(self, *exc_info):
         return False
 
-    async def get_raw(self, path: str, params: dict | None = None):
-        self.calls.append(("GET", path, params))
+    async def get_raw(self, *segments: str | int, params: dict | None = None):
+        self.calls.append(("GET", "/".join(str(seg) for seg in segments), params))
         return self.raw
 
 

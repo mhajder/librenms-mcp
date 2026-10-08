@@ -83,9 +83,7 @@ def register_inventory_tools(mcp, config):
             await ctx.info(f"Getting inventory for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(
-                    f"inventory/{hostname}", params=params or None
-                )
+                result = await client.get("inventory", hostname, params=params or None)
             return paginate_list(result, limit, offset, key="inventory")
 
         except Exception as e:
@@ -135,7 +133,7 @@ def register_inventory_tools(mcp, config):
             await ctx.info(f"Getting flattened inventory for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"inventory/{hostname}/all")
+                result = await client.get("inventory", hostname, "all")
             return paginate_list(result, limit, offset, key="inventory")
 
         except Exception as e:

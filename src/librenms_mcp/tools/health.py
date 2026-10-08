@@ -3,7 +3,6 @@ LibreNMS MCP Server Health Tools
 """
 
 from typing import Annotated
-from urllib.parse import quote
 
 from fastmcp.server.context import Context
 from pydantic import Field
@@ -61,7 +60,7 @@ def register_health_tools(mcp, config):
             await ctx.info(f"Getting health graphs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(f"devices/{hostname}/health")
+                result = await client.get("devices", hostname, "health")
             return paginate_list(result, limit, offset)
 
         except Exception as e:
@@ -116,9 +115,7 @@ def register_health_tools(mcp, config):
             await ctx.info(f"Getting {type} health data for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(
-                    f"devices/{hostname}/health/{quote(type, safe='')}"
-                )
+                result = await client.get("devices", hostname, "health", type)
             return paginate_list(result, limit, offset)
 
         except Exception as e:
@@ -157,9 +154,7 @@ def register_health_tools(mcp, config):
             await ctx.info(f"Getting sensor {sensor_id} ({type}) for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get(
-                    f"devices/{hostname}/health/{quote(type, safe='')}/{sensor_id}"
-                )
+                return await client.get("devices", hostname, "health", type, sensor_id)
 
         except Exception as e:
             await ctx.error(
@@ -208,7 +203,7 @@ def register_health_tools(mcp, config):
             await ctx.info("Listing all sensors...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("resources/sensors")
+                result = await client.get("resources", "sensors")
             return paginate_list(result, limit, offset, key="sensors")
 
         except Exception as e:
