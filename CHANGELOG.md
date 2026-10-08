@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.12.0](https://github.com/mhajder/librenms-mcp/compare/v1.11.3...v1.12.0) (2026-10-08)
+
+
+### 🚀 Features
+
+* **tools:** fix port graphs and searches, add log and ARP filters ([#174](https://github.com/mhajder/librenms-mcp/issues/174)) ([b824ebb](https://github.com/mhajder/librenms-mcp/commit/b824ebbcbc079cf6fe0d7718a2a86769086ba410))
+
+
+### 🐛 Bug Fixes
+
+* **client:** encode every path segment and report errors clearly ([#173](https://github.com/mhajder/librenms-mcp/issues/173)) ([ce84cf0](https://github.com/mhajder/librenms-mcp/commit/ce84cf02b433902ae2410493da7d6c8a30a7d8ce))
+* **config:** handle blank env values and unknown transports ([#171](https://github.com/mhajder/librenms-mcp/issues/171)) ([f8acbf8](https://github.com/mhajder/librenms-mcp/commit/f8acbf8d58aab6bb59a0bb73d51d3d371b702f13))
+
 ## [1.11.3](https://github.com/mhajder/librenms-mcp/compare/v1.11.2...v1.11.3) (2026-10-07)
 
 
