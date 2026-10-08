@@ -1,5 +1,9 @@
 import pytest
 
+from librenms_mcp.utils import env_float
+from librenms_mcp.utils import env_int
+from librenms_mcp.utils import http_host_from_env
+from librenms_mcp.utils import normalize_transport
 from librenms_mcp.utils import parse_bool
 
 
@@ -100,3 +104,75 @@ def test_paginate_list_error_and_invalid():
     # If dictionary has no lists
     no_lists = {"status": "ok", "value": "some string"}
     assert paginate_list(no_lists, 5, 0) == no_lists
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [(None, 30), ("", 30), ("   ", 30), ("45", 45), (" 45 ", 45)],
+)
+def test_env_int_treats_blank_as_unset(monkeypatch, raw, expected):
+    if raw is None:
+        monkeypatch.delenv("LIBRENMS_TEST_INT", raising=False)
+    else:
+        monkeypatch.setenv("LIBRENMS_TEST_INT", raw)
+    assert env_int("LIBRENMS_TEST_INT", 30) == expected
+
+
+def test_env_int_names_the_variable_on_bad_input(monkeypatch):
+    monkeypatch.setenv("LIBRENMS_TEST_INT", "abc")
+    with pytest.raises(ValueError, match="LIBRENMS_TEST_INT must be an integer"):
+        env_int("LIBRENMS_TEST_INT", 30)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, "stdio"),
+        ("", "stdio"),
+        ("  ", "stdio"),
+        ("stdio", "stdio"),
+        (" SSE ", "sse"),
+        ("HTTP", "http"),
+        ("Streamable-HTTP", "http"),
+        # Unknown values pass through for main() to reject.
+        ("websocket", "websocket"),
+    ],
+)
+def test_normalize_transport(raw, expected):
+    assert normalize_transport(raw) == expected
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [(None, 1.0), ("", 1.0), ("  ", 1.0), ("0.25", 0.25), (" 0 ", 0.0)],
+)
+def test_env_float_treats_blank_as_unset(monkeypatch, raw, expected):
+    if raw is None:
+        monkeypatch.delenv("LIBRENMS_TEST_FLOAT", raising=False)
+    else:
+        monkeypatch.setenv("LIBRENMS_TEST_FLOAT", raw)
+    assert env_float("LIBRENMS_TEST_FLOAT", 1.0) == expected
+
+
+def test_env_float_names_the_variable_on_bad_input(monkeypatch):
+    monkeypatch.setenv("LIBRENMS_TEST_FLOAT", "lots")
+    with pytest.raises(ValueError, match="LIBRENMS_TEST_FLOAT must be a number"):
+        env_float("LIBRENMS_TEST_FLOAT", 1.0)
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (None, "127.0.0.1"),
+        ("  ", "127.0.0.1"),
+        (" 0.0.0.0 ", "0.0.0.0"),  # noqa: S104
+        ("[::]", "::"),
+    ],
+)
+def test_http_host_from_env(monkeypatch, raw, expected):
+    """The server and the healthcheck share this; uvicorn needs bare IPv6."""
+    if raw is None:
+        monkeypatch.delenv("MCP_HTTP_HOST", raising=False)
+    else:
+        monkeypatch.setenv("MCP_HTTP_HOST", raw)
+    assert http_host_from_env() == expected

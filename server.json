@@ -224,7 +224,7 @@
         },
         {
           "name": "MCP_TRANSPORT",
-          "description": "MCP transport type (http for HTTP, stdio for stdio)",
+          "description": "MCP transport type: stdio, sse, or http (alias: streamable-http). Unknown values stop the server at startup.",
           "value": "http",
           "isRequired": false,
           "isSecret": false
@@ -352,8 +352,8 @@
         },
         {
           "name": "SENTRY_SEND_DEFAULT_PII",
-          "description": "Allow Sentry to include default PII in events (true/false)",
-          "default": "true",
+          "description": "Allow Sentry to include default PII, including tool inputs and outputs, in events (true/false)",
+          "default": "false",
           "isRequired": false,
           "isSecret": false
         },
@@ -405,7 +405,7 @@
         },
         {
           "name": "MCP_TRANSPORT",
-          "description": "MCP transport type (http for HTTP, stdio for stdio)",
+          "description": "MCP transport type: stdio, sse, or http (alias: streamable-http). Unknown values stop the server at startup.",
           "value": "http",
           "isRequired": false,
           "isSecret": false
