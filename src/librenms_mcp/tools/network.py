@@ -2,6 +2,7 @@
 LibreNMS MCP Server Network Tools
 """
 
+import ipaddress
 from typing import Annotated
 from typing import Any
 
@@ -11,6 +12,11 @@ from pydantic import Field
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.utils import optional_segment
 from librenms_mcp.utils import paginate_list
+
+# LibreNMS keeps ARP entries in an IPv4-only table: an IPv6 CIDR is answered
+# with "Invalid Network Address" and an IPv6 address with an empty list, which
+# reads as "no neighbours". Say so up front instead.
+IPV6_ARP_ERROR = "LibreNMS ARP lookups are IPv4-only; IPv6 queries are not supported"
 
 
 def register_network_tools(mcp, config):
@@ -31,10 +37,17 @@ def register_network_tools(mcp, config):
         query: Annotated[
             str,
             Field(
-                description='Search string for ARP entries. Supports IP address, MAC address, CIDR notation, or "all" (use with device parameter for all entries on a device)'
+                description='Search string for ARP entries. Supports an IPv4 address, MAC address, IPv4 CIDR notation (e.g. 10.0.0.0/24), or "all" (combine with the device parameter for all entries on one device)'
             ),
         ],
         ctx: Context,
+        device: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description='Device hostname or ID to restrict results to. Only valid with query "all"; any other query returns an error.',
+            ),
+        ] = None,
         limit: Annotated[
             int,
             Field(
@@ -57,6 +70,7 @@ def register_network_tools(mcp, config):
 
         Args:
             query (str): Search string - IP, MAC, CIDR notation, or "all".
+            device (str, optional): Device hostname or ID, used with query "all".
             limit (int): Maximum number of results to return.
             offset (int): Number of results to skip.
 
@@ -66,8 +80,44 @@ def register_network_tools(mcp, config):
         try:
             await ctx.info(f"Searching ARP entries with query: {query}")
 
+            query = query.strip()
+            device = (device or "").strip() or None
+            is_all = query.casefold() == "all"
+            if device and not is_all:
+                # LibreNMS only filters by device for "all"; silently dropping
+                # it would pass off every device's entries as this one's.
+                return {
+                    "error": 'The device parameter can only be used with query "all"'
+                }
+            segments = ["resources", "ip", "arp", "all" if is_all else query]
+            # One parse covers both checks: a bare address parses as a /32 or
+            # /128 network, and MACs or "all" do not parse at all.
+            try:
+                network = ipaddress.ip_network(query, strict=False)
+            except ValueError:
+                if "/" in query:
+                    return {"error": f"Invalid CIDR notation: {query!r}"}
+                network = None
+            if network is not None:
+                if network.version != 4:
+                    return {"error": IPV6_ARP_ERROR}
+                if "/" in query:
+                    # LibreNMS routes CIDR as two segments (ip/arp/{query}/{cidr}),
+                    # so the prefix length must stay a real path separator.
+                    segments[-1:] = [
+                        str(network.network_address),
+                        str(network.prefixlen),
+                    ]
+            params = {"device": device} if device else None
+
             async with LibreNMSClient(config) as client:
-                result = await client.get("resources", "ip", "arp", query)
+                if device:
+                    # LibreNMS filters on a device it cannot resolve as if it had
+                    # no entries, which would read as "no ARP neighbours".
+                    found = await client.get("devices", device)
+                    if found.get("status") == "error":
+                        return found
+                result = await client.get(*segments, params=params)
             return paginate_list(result, limit, offset)
 
         except Exception as e:

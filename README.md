@@ -272,12 +272,28 @@ PNG on older ones; the MIME type is taken from the response.
 
 - `device_graphs_list`: List the graph types available for a device
 - `device_graph`: Render a device-level graph (e.g. `device_icmp_perf`)
-- `port_graph`: Render a per-port graph by interface name (`bits`, `upkts`, `errors`, `etherlike`)
+- `port_graph`: Render a per-port graph by interface name (`bits`, `upkts`, `nupkts`, `errors`, `etherlike`; the LibreNMS names such as `port_bits` are accepted too)
 - `port_group_graph`: Render a traffic graph for one or more ports by port ID
 
-`port_graph` falls back to the port-group endpoint for `bits` when the per-port
-endpoint fails, which works around LibreNMS releases that return a 500 naming an
-empty graph type.
+Interface names containing a slash (`Te2/7`) are sent percent-encoded, and some
+reverse proxies reject or decode the encoded slash. When that happens,
+`port_graph` (for `bits`) and `device_ports_get` retry by port ID instead, so
+they still work behind such a proxy. Authentication errors are never retried,
+and LibreNMS's own "not found" answers are reported as is for names without a
+slash (a name with a slash is always retried, since a decoding proxy can turn it
+into a LibreNMS "not found" for the wrong path).
+
+Other tools that put a slash-bearing value in the path (`ports_search`,
+`ports_search_field`, `oxidized_config_search` with a prefix such as
+`0.0.0.0/0`, location names) have no such fallback. If LibreNMS sits
+behind Apache, allow encoded slashes so every tool works:
+
+```apache
+AllowEncodedSlashes NoDecode
+```
+
+A 400 or 404 for a path with an encoded slash that did not come from LibreNMS includes
+this hint in the tool's error message.
 
 ### Alerting & Logging Tools
 
@@ -294,10 +310,10 @@ empty graph type.
 - `alert_template_get`: Get a specific alert template
 - `alert_template_create`: Create a new alert template
 - `alert_template_edit`: Edit an alert template
-- `logs_eventlog`: Get event log for a device
-- `logs_syslog`: Get syslog for a device
-- `logs_alertlog`: Get alert log for a device
-- `logs_authlog`: Get auth log for a device
+- `logs_eventlog`: Get event log for a device, or for all devices when no hostname is given
+- `logs_syslog`: Get syslog for a device, or for all devices when no hostname is given
+- `logs_alertlog`: Get alert log for a device, or for all devices when no hostname is given
+- `logs_authlog`: Get the server-wide authentication log
 - `logs_syslogsink`: Add a syslog sink
 
 ### Billing Tools
