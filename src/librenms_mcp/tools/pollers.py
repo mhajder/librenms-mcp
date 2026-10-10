@@ -8,6 +8,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import error_body
 
 
 def register_poller_tools(mcp, config):
@@ -47,4 +48,4 @@ def register_poller_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error poller group {poller_group}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))

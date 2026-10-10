@@ -8,6 +8,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
 
 # The fields LibreNMS searches when ports/search is given only a search term.
@@ -78,7 +79,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error listing ports: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports", "read-only"},
@@ -144,7 +145,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error searching ports {search}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports", "read-only"},
@@ -201,7 +202,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error field search {field}={search}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports", "read-only"},
@@ -256,7 +257,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error MAC search {mac}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports", "read-only"},
@@ -284,7 +285,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error port {port_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports", "read-only"},
@@ -312,7 +313,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error port IP {port_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports", "read-only"},
@@ -342,7 +343,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error transceiver {port_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports", "read-only"},
@@ -372,7 +373,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error description {port_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports"},
@@ -410,7 +411,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error updating description {port_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     ##########################
     # Port Groups
@@ -458,7 +459,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error listing port groups: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "port-groups", "admin"},
@@ -496,7 +497,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error adding port group: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "port-groups", "read-only", "global-read"},
@@ -546,7 +547,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error listing ports in group {name}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "port-groups", "admin"},
@@ -584,7 +585,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error assigning port group {port_group_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "port-groups", "admin"},
@@ -622,7 +623,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error removing port group {port_group_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports", "fdb", "read-only"},
@@ -671,4 +672,4 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
 
         except Exception as e:
             await ctx.error(f"Error listing FDB for port {port_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))

@@ -8,6 +8,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import error_body
 from librenms_mcp.utils import optional_segment
 from librenms_mcp.utils import paginate_list
 
@@ -71,7 +72,7 @@ def register_oxidized_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing Oxidized devices: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "oxidized", "read-only"},
@@ -105,7 +106,7 @@ def register_oxidized_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error getting Oxidized config for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "oxidized", "read-only"},
@@ -163,4 +164,4 @@ def register_oxidized_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error searching Oxidized configs: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))

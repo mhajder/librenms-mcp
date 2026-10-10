@@ -12,6 +12,7 @@ from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.tools.graphs import _to_image
+from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
 
 
@@ -91,7 +92,7 @@ def register_bill_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing bills: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "bills", "read-only"},
@@ -129,7 +130,7 @@ def register_bill_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error getting bill {bill_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "bills", "read-only"},
@@ -210,7 +211,7 @@ def register_bill_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error bill graph data {bill_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "bills", "read-only"},
@@ -260,7 +261,7 @@ def register_bill_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error bill history {bill_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "bills", "read-only"},
@@ -349,7 +350,7 @@ def register_bill_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error bill history graph data {bill_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "bills", "admin"},
@@ -395,7 +396,7 @@ def register_bill_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error creating/updating bill: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "bills", "admin"},
@@ -426,4 +427,4 @@ def register_bill_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error deleting bill {bill_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))

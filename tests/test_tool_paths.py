@@ -416,7 +416,7 @@ async def test_device_ports_get_reports_both_errors_when_fallback_fails(server):
         result = await client.call_tool(
             "device_ports_get", {"hostname": "sw1", "ifname": "Po1"}
         )
-    error = result.data["error"]
+    error = result.data["message"]
     assert "HTTP 404 for GET devices/sw1/ports/Po1:" in error
     assert "lookup by port ID also failed" in error
 
@@ -442,7 +442,7 @@ async def test_device_ports_get_reports_by_id_errors_instead_of_success(server):
         result = await client.call_tool(
             "device_ports_get", {"hostname": "sw1", "ifname": "Te2/7"}
         )
-    error = result.data["error"]
+    error = result.data["message"]
     assert "AllowEncodedSlashes" in error
     assert "lookup by port ID also failed" in error
     assert "HTTP 403 for GET ports/9: Forbidden" in error

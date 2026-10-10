@@ -11,6 +11,7 @@ from pydantic import Field
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.librenms_client import LibreNMSHTTPError
 from librenms_mcp.tools.port_lookup import with_port_id_fallback
+from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
 
 
@@ -83,7 +84,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error listing devices: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "admin"},
@@ -133,7 +134,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error adding device: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "read-only"},
@@ -164,7 +165,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error getting device {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "admin"},
@@ -195,7 +196,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error deleting device {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "admin"},
@@ -252,7 +253,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error updating device {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "read-only"},
@@ -316,7 +317,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error listing ports for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "read-only"},
@@ -376,7 +377,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error getting port {ifname} on {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "read-only"},
@@ -406,7 +407,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error availability {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "read-only"},
@@ -456,7 +457,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error outages {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "admin"},
@@ -500,7 +501,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error setting maintenance {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     ##########################
     # Device Groups
@@ -548,7 +549,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error listing device groups: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "device-groups", "admin"},
@@ -595,7 +596,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error adding device group: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "device-groups", "admin"},
@@ -638,7 +639,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error updating device group {name}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "device-groups", "admin"},
@@ -669,7 +670,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error deleting device group {name}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "device-groups", "read-only", "global-read"},
@@ -735,7 +736,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error listing devices in group {name}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "device-groups", "admin"},
@@ -779,7 +780,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error setting maintenance for group {name}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "device-groups", "admin"},
@@ -817,7 +818,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error adding devices to group {name}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "device-groups", "admin"},
@@ -857,7 +858,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error removing devices from group {name}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     ##########################
     # Additional Device Tools
@@ -892,7 +893,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error triggering discovery for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices"},
@@ -925,7 +926,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error renaming device {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "read-only"},
@@ -956,7 +957,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error checking maintenance status for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "read-only"},
@@ -1006,7 +1007,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error getting VLANs for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "read-only"},
@@ -1056,7 +1057,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error getting links for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices"},
@@ -1097,7 +1098,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error adding event log for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "fdb", "read-only"},
@@ -1146,7 +1147,7 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error listing FDB for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "devices", "nac", "read-only"},
@@ -1195,4 +1196,4 @@ Example dynamic group:
 
         except Exception as e:
             await ctx.error(f"Error listing NAC sessions for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))

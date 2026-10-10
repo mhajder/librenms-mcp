@@ -5,6 +5,7 @@ LibreNMS MCP Server System Tools
 from fastmcp.server.context import Context
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import error_body
 
 
 def register_system_tools(mcp, config):
@@ -36,7 +37,7 @@ def register_system_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error system info: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "system", "read-only"},
@@ -61,4 +62,4 @@ def register_system_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error pinging API: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
