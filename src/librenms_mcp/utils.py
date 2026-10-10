@@ -41,6 +41,28 @@ def normalize_transport(val: str | None) -> str:
     return TRANSPORT_ALIASES.get(raw, raw)
 
 
+def blank_to_none(value: str | None) -> str | None:
+    """
+    Return value stripped, or None when it is unset, blank or whitespace-only.
+
+    Also used for filters sent as query parameters. LibreNMS trims query input
+    (Laravel's TrimStrings middleware) but not route parameters, so
+    ``?hostname= core1 `` filters on 'core1'. Anything checked against such a
+    filter, like the device lookup, must use the same stripped value, or it
+    would reject input the filter itself accepts. Path parts are different:
+    they are sent as given (see path_segment and optional_segment).
+    """
+    return (value or "").strip() or None
+
+
+def env_str(name: str) -> str | None:
+    """
+    Read a string environment variable, stripped; blank or whitespace-only
+    counts as unset and yields None, matching env_int and parse_bool.
+    """
+    return blank_to_none(os.getenv(name))
+
+
 def http_host_from_env() -> str:
     """
     Return MCP_HTTP_HOST, stripped and without IPv6 brackets, defaulting to
@@ -49,7 +71,7 @@ def http_host_from_env() -> str:
     The server and the container healthcheck both read the bind address here,
     so they always agree on it.
     """
-    host = (os.getenv("MCP_HTTP_HOST") or "").strip() or "127.0.0.1"
+    host = env_str("MCP_HTTP_HOST") or "127.0.0.1"
     # Accept the URL form of an IPv6 literal ('[::]'); uvicorn needs it bare.
     if host.startswith("[") and host.endswith("]"):
         host = host[1:-1]
@@ -99,13 +121,13 @@ def _env_number(
     name: str, default: _Number, cast: Callable[[str], _Number], kind: str
 ) -> _Number:
     """Read a numeric environment variable, treating a blank value as unset."""
-    raw = os.getenv(name)
-    if raw is None or not raw.strip():
+    value = env_str(name)
+    if value is None:
         return default
     try:
-        return cast(raw.strip())
+        return cast(value)
     except ValueError:
-        raise ValueError(f"{name} must be {kind}, got {raw!r}") from None
+        raise ValueError(f"{name} must be {kind}, got {os.getenv(name)!r}") from None
 
 
 def env_int(name: str, default: int) -> int:

@@ -10,6 +10,7 @@ import pytest
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.librenms_client import LibreNMSHTTPError
 from librenms_mcp.librenms_client import _build_path
+from librenms_mcp.librenms_client import get_librenms_config_from_env
 from librenms_mcp.librenms_client import get_transport_config_from_env
 from librenms_mcp.models import LibreNMSConfig
 
@@ -397,3 +398,144 @@ async def test_raise_for_status_keeps_raw_origin_and_normalized_body(mock_client
     }
 
     await client.close()
+
+
+@pytest.mark.parametrize(
+    ("url", "token", "missing"),
+    [
+        ("   ", "t", "LIBRENMS_URL"),
+        ("https://nms.invalid", "  ", "LIBRENMS_TOKEN"),
+    ],
+)
+def test_whitespace_only_url_or_token_is_missing(monkeypatch, url, token, missing):
+    """A blank-looking value must stop startup, not fail every call later."""
+    monkeypatch.setenv("LIBRENMS_URL", url)
+    monkeypatch.setenv("LIBRENMS_TOKEN", token)
+    with pytest.raises(ValueError, match=f"{missing} environment variable is required"):
+        get_librenms_config_from_env()
+
+
+def test_url_and_token_are_trimmed(monkeypatch):
+    monkeypatch.setenv("LIBRENMS_URL", " https://nms.invalid ")
+    monkeypatch.setenv("LIBRENMS_TOKEN", " t ")
+    config = get_librenms_config_from_env()
+    assert (config.librenms_url, config.token) == ("https://nms.invalid", "t")
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [(None, "bm25"), ("", "bm25"), ("regex ", "regex"), (" BM25", "bm25")],
+)
+def test_tool_search_strategy_is_trimmed(monkeypatch, raw, expected):
+    monkeypatch.setenv("LIBRENMS_URL", "https://nms.invalid")
+    monkeypatch.setenv("LIBRENMS_TOKEN", "t")
+    if raw is None:
+        monkeypatch.delenv("TOOL_SEARCH_STRATEGY", raising=False)
+    else:
+        monkeypatch.setenv("TOOL_SEARCH_STRATEGY", raw)
+    assert get_librenms_config_from_env().tool_search_strategy == expected
+
+
+def test_unknown_tool_search_strategy_stops_startup(monkeypatch):
+    """A typo must not silently switch to bm25 when tool search is on."""
+    monkeypatch.setenv("LIBRENMS_URL", "https://nms.invalid")
+    monkeypatch.setenv("LIBRENMS_TOKEN", "t")
+    monkeypatch.setenv("TOOL_SEARCH_ENABLED", "true")
+    monkeypatch.setenv("TOOL_SEARCH_STRATEGY", "regx")
+    with pytest.raises(
+        ValueError, match="TOOL_SEARCH_STRATEGY must be 'bm25' or 'regex'"
+    ):
+        get_librenms_config_from_env()
+
+
+@pytest.mark.parametrize(
+    ("enable", "name"),
+    [
+        ("RATE_LIMIT_ENABLED", "RATE_LIMIT_MAX_REQUESTS"),
+        ("RATE_LIMIT_ENABLED", "RATE_LIMIT_WINDOW_MINUTES"),
+        ("TOOL_SEARCH_ENABLED", "TOOL_SEARCH_MAX_RESULTS"),
+    ],
+)
+@pytest.mark.parametrize("value", ["0", "-5"])
+def test_enabled_feature_settings_must_be_positive(monkeypatch, enable, name, value):
+    """0 would reject every call or return no tools, with no explanation."""
+    monkeypatch.setenv("LIBRENMS_URL", "https://nms.invalid")
+    monkeypatch.setenv("LIBRENMS_TOKEN", "t")
+    monkeypatch.setenv(enable, "true")
+    monkeypatch.setenv(name, value)
+    with pytest.raises(ValueError, match=f"must be at least 1: {name}={value}"):
+        get_librenms_config_from_env()
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("RATE_LIMIT_MAX_REQUESTS", "0"),
+        ("RATE_LIMIT_WINDOW_MINUTES", "0"),
+        ("TOOL_SEARCH_MAX_RESULTS", "0"),
+        ("TOOL_SEARCH_STRATEGY", "semantic"),
+        ("RATE_LIMIT_MAX_REQUESTS", "off"),
+        ("TOOL_SEARCH_MAX_RESULTS", "none"),
+    ],
+)
+def test_disabled_feature_leftovers_do_not_stop_startup(monkeypatch, name, value):
+    """RATE_LIMIT_MAX_REQUESTS=0 is a common way to say 'off'."""
+    monkeypatch.setenv("LIBRENMS_URL", "https://nms.invalid")
+    monkeypatch.setenv("LIBRENMS_TOKEN", "t")
+    monkeypatch.delenv("RATE_LIMIT_ENABLED", raising=False)
+    monkeypatch.delenv("TOOL_SEARCH_ENABLED", raising=False)
+    monkeypatch.setenv(name, value)
+    get_librenms_config_from_env()
+
+
+@pytest.mark.parametrize("value", ["0", "-1"])
+def test_timeout_must_be_positive(monkeypatch, value):
+    monkeypatch.setenv("LIBRENMS_URL", "https://nms.invalid")
+    monkeypatch.setenv("LIBRENMS_TOKEN", "t")
+    monkeypatch.setenv("LIBRENMS_TIMEOUT", value)
+    with pytest.raises(ValueError, match="greater than 0"):
+        get_librenms_config_from_env()
+
+
+@pytest.mark.parametrize("transport", [None, "stdio"])
+def test_bad_http_port_is_ignored_without_an_http_transport(monkeypatch, transport):
+    """stdio and `fastmcp run` never bind MCP_HTTP_PORT; a leftover must not stop them."""
+    if transport is None:
+        monkeypatch.delenv("MCP_TRANSPORT", raising=False)
+    else:
+        monkeypatch.setenv("MCP_TRANSPORT", transport)
+    monkeypatch.setenv("MCP_HTTP_PORT", "auto")
+    assert get_transport_config_from_env().http_port == 8000
+
+
+@pytest.mark.parametrize("transport", ["http", "sse"])
+def test_bad_http_port_stops_an_http_transport(monkeypatch, transport):
+    monkeypatch.setenv("MCP_TRANSPORT", transport)
+    monkeypatch.setenv("MCP_HTTP_PORT", "auto")
+    with pytest.raises(ValueError, match="MCP_HTTP_PORT must be an integer"):
+        get_transport_config_from_env()
+
+
+def test_numeric_settings_default_to_the_model_defaults(monkeypatch):
+    """One source for defaults: LibreNMSConfig's fields."""
+    for name in (
+        "LIBRENMS_TIMEOUT",
+        "RATE_LIMIT_MAX_REQUESTS",
+        "RATE_LIMIT_WINDOW_MINUTES",
+        "TOOL_SEARCH_MAX_RESULTS",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("LIBRENMS_URL", "https://nms.invalid")
+    monkeypatch.setenv("LIBRENMS_TOKEN", "t")
+    for enabled in ("false", "true"):
+        monkeypatch.setenv("RATE_LIMIT_ENABLED", enabled)
+        monkeypatch.setenv("TOOL_SEARCH_ENABLED", enabled)
+        config = get_librenms_config_from_env()
+        fields = LibreNMSConfig.model_fields
+        for field in (
+            "timeout",
+            "rate_limit_max_requests",
+            "rate_limit_window_minutes",
+            "tool_search_max_results",
+        ):
+            assert getattr(config, field) == fields[field].default

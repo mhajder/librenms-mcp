@@ -72,17 +72,15 @@ except Exception as e:
 
 # Create auth provider if bearer token is configured
 auth_provider = None
-if getattr(TRANSPORT_CONFIG, "http_bearer_token", None):
-    bearer_token = TRANSPORT_CONFIG.http_bearer_token
-    if bearer_token:  # Type narrowing: ensures bearer_token is str, not None
-        auth_provider = StaticTokenVerifier(
-            tokens={
-                bearer_token: {
-                    "client_id": "authenticated-client",
-                    "scopes": ["read", "write"],
-                }
+if TRANSPORT_CONFIG.http_bearer_token:
+    auth_provider = StaticTokenVerifier(
+        tokens={
+            TRANSPORT_CONFIG.http_bearer_token: {
+                "client_id": "authenticated-client",
+                "scopes": ["read", "write"],
             }
-        )
+        }
+    )
 
 # Initialize FastMCP server
 mcp = FastMCP(
@@ -115,29 +113,26 @@ register_tools(mcp, LNMS_CONFIG)
 def configure_component_visibility() -> None:
     """Apply server-level visibility transforms for read-only and disabled tags."""
 
-    disabled_tags = getattr(LNMS_CONFIG, "disabled_tags", set())
-    read_only_mode = getattr(LNMS_CONFIG, "read_only_mode", False)
-
-    if read_only_mode:
+    if LNMS_CONFIG.read_only_mode:
         logger.info("Read-only mode is enabled - restricting to read-only components")
         mcp.enable(tags={"read-only"}, only=True)
 
-    if disabled_tags:
+    if LNMS_CONFIG.disabled_tags:
         logger.info(
             "Disabled tags configured: %s - disabling matching components",
-            disabled_tags,
+            LNMS_CONFIG.disabled_tags,
         )
-        mcp.disable(tags=disabled_tags)
+        mcp.disable(tags=LNMS_CONFIG.disabled_tags)
 
 
 def configure_tool_search() -> None:
     """Apply the optional FastMCP tool-search transform."""
 
-    if not getattr(LNMS_CONFIG, "tool_search_enabled", False):
+    if not LNMS_CONFIG.tool_search_enabled:
         return
 
-    strategy = getattr(LNMS_CONFIG, "tool_search_strategy", "bm25")
-    max_results = getattr(LNMS_CONFIG, "tool_search_max_results", 5)
+    strategy = LNMS_CONFIG.tool_search_strategy
+    max_results = LNMS_CONFIG.tool_search_max_results
 
     if strategy == "regex":
         mcp.add_transform(RegexSearchTransform(max_results=max_results))
@@ -155,7 +150,7 @@ configure_component_visibility()
 configure_tool_search()
 
 # Optional rate limiting
-if getattr(LNMS_CONFIG, "rate_limit_enabled", False):
+if LNMS_CONFIG.rate_limit_enabled:
     logger.info("Rate limiting is enabled - applying middleware")
     mcp.add_middleware(
         SlidingWindowRateLimitingMiddleware(
@@ -166,13 +161,6 @@ if getattr(LNMS_CONFIG, "rate_limit_enabled", False):
 
 
 def main():
-    # Basic validation
-    if not all([LNMS_CONFIG.librenms_url, LNMS_CONFIG.token]):
-        logger.error(
-            "Missing required LibreNMS configuration (LIBRENMS_URL or LIBRENMS_TOKEN). Check your .env file."
-        )
-        raise SystemExit(1)
-
     if TRANSPORT_CONFIG.transport_type not in VALID_TRANSPORTS:
         logger.error(
             "Unknown MCP_TRANSPORT %r. Valid values: %s",

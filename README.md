@@ -156,7 +156,7 @@ READ_ONLY_MODE=false
 
 # Disabled Tags
 # Comma-separated list of tags to disable tools for (empty by default)
-# Example: DISABLED_TAGS=alert,bills
+# Example: DISABLED_TAGS=alert,alert-rules,alert-templates,bills
 DISABLED_TAGS=
 
 # Logging Configuration
@@ -393,8 +393,22 @@ READ_ONLY_MODE=true
 You can disable specific categories of tools by setting disabled tags:
 
 ```env
-DISABLED_TAGS=alert,bills
+DISABLED_TAGS=alert,alert-rules,alert-templates,bills
 ```
+
+A tool is hidden when any of its tags is disabled, and some tools carry more
+than one category tag: for example, `port_graph` is tagged `graphs` and `ports`,
+and `ospf_list` is tagged `routing` and `ospf`, so `DISABLED_TAGS=ports` also
+hides `port_graph`. Alerting is split into three tags: `alert` (current alerts:
+list, acknowledge, unmute), `alert-rules` and `alert-templates`; disable all
+three to hide every alerting tool.
+
+Besides the categories, `read-only` marks the tools that stay available in
+read-only mode. The `admin` and `global-read` tags follow the permission groups
+older LibreNMS releases used for their API routes (`can:admin`,
+`can:global-read`). Current LibreNMS checks permissions per object instead, so
+treat these two as broad categories rather than an exact match of what your
+LibreNMS user may do.
 
 ### Tool Search for Large Toolsets
 

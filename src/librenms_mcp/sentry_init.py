@@ -6,6 +6,7 @@ import logging
 import os
 
 from librenms_mcp.utils import env_float
+from librenms_mcp.utils import env_str
 from librenms_mcp.utils import parse_bool
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,8 @@ def init_sentry() -> bool:
         This function will silently return False if sentry-sdk is not installed
         or if SENTRY_DSN is not configured.
     """
-    sentry_dsn = os.getenv("SENTRY_DSN")
+    # Whitespace-only counts as unset, like the other blank settings.
+    sentry_dsn = env_str("SENTRY_DSN")
 
     if not sentry_dsn:
         # Sentry is not configured
@@ -46,8 +48,8 @@ def init_sentry() -> bool:
         send_default_pii = parse_bool(
             os.getenv("SENTRY_SEND_DEFAULT_PII"), default=False
         )
-        environment: str | None = os.getenv("SENTRY_ENVIRONMENT")
-        release: str | None = os.getenv("SENTRY_RELEASE")
+        environment = env_str("SENTRY_ENVIRONMENT")
+        release = env_str("SENTRY_RELEASE")
         profile_session_sample_rate = env_float(
             "SENTRY_PROFILE_SESSION_SAMPLE_RATE", 1.0
         )
