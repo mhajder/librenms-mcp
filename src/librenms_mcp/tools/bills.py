@@ -4,6 +4,7 @@ LibreNMS MCP Server Bill Tools
 
 from typing import Annotated
 from typing import Any
+from typing import Literal
 
 from fastmcp.exceptions import ToolError
 from fastmcp.server.context import Context
@@ -12,10 +13,27 @@ from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.tools.graphs import _to_image
+from librenms_mcp.tools.graphs import image_params
 from librenms_mcp.utils import blank_to_none
 from librenms_mcp.utils import error_body
 from librenms_mcp.utils import not_found_if_empty
 from librenms_mcp.utils import paginate_list
+
+# LibreNMS supports different graph types for a bill's current period and for
+# its history; anything else is answered with a 400 or 500 ("bill_day template
+# missing"), so the allowed values are enforced in the schema.
+CurrentGraphType = Annotated[
+    Literal["bits", "monthly"],
+    Field(
+        description="Graph type for the current billing period: 'bits' (traffic) or 'monthly' (transfer per month)"
+    ),
+]
+HistoryGraphType = Annotated[
+    Literal["bits", "day", "hour"],
+    Field(
+        description="Graph type for a past billing period: 'bits' (traffic), 'day' or 'hour' (transfer per day or hour)"
+    ),
+]
 
 
 def register_bill_tools(mcp, config):
@@ -161,10 +179,7 @@ def register_bill_tools(mcp, config):
     )
     async def bill_graph(
         bill_id: Annotated[int, Field(ge=1, description="Bill ID")],
-        graph_type: Annotated[
-            str,
-            Field(description="Graph type: bits, monthly, hour, or day"),
-        ],
+        graph_type: CurrentGraphType,
         ctx: Context,
     ) -> Image:
         """
@@ -174,7 +189,7 @@ def register_bill_tools(mcp, config):
 
         Args:
             bill_id (int): Bill ID.
-            graph_type (str): Type of graph (bits, monthly, hour, day).
+            graph_type (str): bits or monthly.
 
         Returns:
             Image: The rendered graph.
@@ -184,7 +199,11 @@ def register_bill_tools(mcp, config):
 
             async with LibreNMSClient(config) as client:
                 data, content_type = await client.get_raw(
-                    "bills", bill_id, "graphs", graph_type
+                    "bills",
+                    bill_id,
+                    "graphs",
+                    graph_type,
+                    params=image_params(),
                 )
                 return _to_image(data, content_type)
 
@@ -206,10 +225,7 @@ def register_bill_tools(mcp, config):
     )
     async def bill_graph_data(
         bill_id: Annotated[int, Field(ge=1, description="Bill ID")],
-        graph_type: Annotated[
-            str,
-            Field(description="Graph type: bits, monthly, hour, or day"),
-        ],
+        graph_type: CurrentGraphType,
         ctx: Context,
     ) -> dict:
         """
@@ -217,7 +233,7 @@ def register_bill_tools(mcp, config):
 
         Args:
             bill_id (int): Bill ID.
-            graph_type (str): Type of graph (bits, monthly, hour, day).
+            graph_type (str): bits or monthly.
 
         Returns:
             dict: The JSON response from the API.
@@ -293,10 +309,7 @@ def register_bill_tools(mcp, config):
     async def bill_history_graph(
         bill_id: Annotated[int, Field(ge=1, description="Bill ID")],
         history_id: Annotated[int, Field(ge=1, description="Bill history ID")],
-        graph_type: Annotated[
-            str,
-            Field(description="Graph type: bits, monthly, hour, or day"),
-        ],
+        graph_type: HistoryGraphType,
         ctx: Context,
     ) -> Image:
         """
@@ -308,7 +321,7 @@ def register_bill_tools(mcp, config):
         Args:
             bill_id (int): Bill ID.
             history_id (int): Bill history ID.
-            graph_type (str): Type of graph (bits, monthly, hour, day).
+            graph_type (str): bits, day or hour.
 
         Returns:
             Image: The rendered graph.
@@ -318,7 +331,13 @@ def register_bill_tools(mcp, config):
 
             async with LibreNMSClient(config) as client:
                 data, content_type = await client.get_raw(
-                    "bills", bill_id, "history", history_id, "graphs", graph_type
+                    "bills",
+                    bill_id,
+                    "history",
+                    history_id,
+                    "graphs",
+                    graph_type,
+                    params=image_params(),
                 )
                 return _to_image(data, content_type)
 
@@ -342,10 +361,7 @@ def register_bill_tools(mcp, config):
     async def bill_history_graph_data(
         bill_id: Annotated[int, Field(ge=1, description="Bill ID")],
         history_id: Annotated[int, Field(ge=1, description="Bill history ID")],
-        graph_type: Annotated[
-            str,
-            Field(description="Graph type: bits, monthly, hour, or day"),
-        ],
+        graph_type: HistoryGraphType,
         ctx: Context,
     ) -> dict:
         """
@@ -354,7 +370,7 @@ def register_bill_tools(mcp, config):
         Args:
             bill_id (int): Bill ID.
             history_id (int): Bill history ID.
-            graph_type (str): Type of graph (bits, monthly, hour, day).
+            graph_type (str): bits, day or hour.
 
         Returns:
             dict: The JSON response from the API.

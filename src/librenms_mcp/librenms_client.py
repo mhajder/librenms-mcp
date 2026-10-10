@@ -290,8 +290,8 @@ class LibreNMSClient:
     ) -> tuple[bytes, str]:
         """Perform a GET request returning the undecoded body and its content type.
 
-        Graph endpoints return an image (SVG or PNG depending on the LibreNMS
-        version and rrdtool build) rather than JSON, so they cannot go through
+        Graph endpoints return an image (PNG when requested with graph_type,
+        otherwise in LibreNMS's webui.graph_type format) rather than JSON, so they cannot go through
         `get()`, which would fail to decode the body.
 
         Args:
