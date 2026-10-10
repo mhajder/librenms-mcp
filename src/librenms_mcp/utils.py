@@ -160,9 +160,13 @@ def optional_segment(value: str | None) -> tuple[str, ...]:
     For LibreNMS routes whose last segment is optional (``oxidized/{hostname?}``,
     ``logs/eventlog/{hostname?}``): spread the result into the client call, as in
     ``client.get("oxidized", *optional_segment(hostname))``. A blank value
-    counts as unset, so the route lists everything.
+    counts as unset, so the route lists everything. A set value is sent
+    unstripped: LibreNMS does not trim route parameters, unlike query input
+    (see blank_to_none).
     """
-    return (value,) if value is not None and value.strip() else ()
+    # The None check is not redundant: it narrows value to str for the type
+    # checker, which blank_to_none alone does not.
+    return (value,) if value is not None and blank_to_none(value) else ()
 
 
 def parse_bool(val: str | None, default: bool = True) -> bool:
@@ -245,6 +249,83 @@ def paginate_list(
     paginated_result["offset"] = offset
 
     return paginated_result
+
+
+def not_found_if_empty(result: Any, key: str, message: str) -> Any:
+    """
+    Turn LibreNMS's "found nothing" answer to a lookup by ID into an error.
+
+    Several get-by-ID endpoints (alerts, rules, templates, bills, ports) answer
+    an ID that does not exist with status "ok" and an empty list, which reads
+    as an object with no data rather than "no such object".
+
+    Args:
+        result: The decoded response.
+        key: The response key holding the list.
+        message: The error message to return when the list is empty.
+
+    Returns:
+        The response unchanged, or {"status": "error", "message": message}.
+    """
+    if (
+        isinstance(result, dict)
+        and result.get("status") == "ok"
+        and isinstance(result.get(key), list)
+        and not result[key]
+    ):
+        return error_body(message)
+    return result
+
+
+def error_if_no_alert(result: Any) -> Any:
+    """
+    Turn LibreNMS's "No alert by that ID" success into an error.
+
+    Acknowledging or unmuting an alert that does not exist is answered with
+    status "ok", which reads as if the action succeeded.
+    """
+    if (
+        isinstance(result, dict)
+        and result.get("status") == "ok"
+        and "no alert by that id" in str(result.get("message", "")).casefold()
+    ):
+        return {**result, "status": "error"}
+    return result
+
+
+def unique_match(
+    entries: list[dict[str, Any]], field: str, name: str
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    """
+    Find the one entry whose field equals a name: exactly, then ignoring case.
+
+    Each stage must match a single entry; several matches are reported rather
+    than resolved, since picking one would silently act on the wrong object
+    (stacked switches can report one ifName twice, names can differ only in
+    case).
+
+    Args:
+        entries: The candidate objects.
+        field: The key holding each object's name.
+        name: The name to look for, as given.
+
+    Returns:
+        tuple: ``(entry, [])`` for a unique match, ``(None, matches)`` when a
+        stage matched several entries, ``(None, [])`` when nothing matched.
+    """
+    for normalize in (str, str.casefold):
+        wanted = normalize(name)
+        matches = [
+            entry
+            for entry in entries
+            # A missing or null name must not match "None" or "".
+            if entry.get(field) is not None and normalize(str(entry[field])) == wanted
+        ]
+        if len(matches) == 1:
+            return matches[0], []
+        if matches:
+            return None, matches
+    return None, []
 
 
 def error_body(message: str) -> dict[str, Any]:

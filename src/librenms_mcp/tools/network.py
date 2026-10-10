@@ -10,6 +10,9 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.device_check import device_error_if_empty
+from librenms_mcp.tools.device_check import lookup_device
+from librenms_mcp.utils import blank_to_none
 from librenms_mcp.utils import error_body
 from librenms_mcp.utils import optional_segment
 from librenms_mcp.utils import paginate_list
@@ -82,7 +85,7 @@ def register_network_tools(mcp, config):
             await ctx.info(f"Searching ARP entries with query: {query}")
 
             query = query.strip()
-            device = (device or "").strip() or None
+            device = blank_to_none(device)
             is_all = query.casefold() == "all"
             if device and not is_all:
                 # LibreNMS only filters by device for "all"; silently dropping
@@ -112,13 +115,9 @@ def register_network_tools(mcp, config):
             params = {"device": device} if device else None
 
             async with LibreNMSClient(config) as client:
-                if device:
-                    # LibreNMS filters on a device it cannot resolve as if it had
-                    # no entries, which would read as "no ARP neighbours".
-                    found = await client.get("devices", device)
-                    if found.get("status") == "error":
-                        return found
                 result = await client.get(*segments, params=params)
+                if device:
+                    result = await device_error_if_empty(client, device, result, "arp")
             return paginate_list(result, limit, offset)
 
         except Exception as e:
@@ -141,7 +140,10 @@ def register_network_tools(mcp, config):
         ctx: Context,
         hostname: Annotated[
             str | None,
-            Field(default=None, description="Filter by device hostname"),
+            Field(
+                default=None,
+                description="Filter by device hostname or ID. An unknown device returns an error.",
+            ),
         ] = None,
         asn: Annotated[
             int | str | None,
@@ -204,6 +206,7 @@ def register_network_tools(mcp, config):
             dict: The JSON response from the API.
         """
         params: dict[str, Any] = {}
+        hostname = blank_to_none(hostname)
         if hostname is not None:
             params["hostname"] = hostname
         if asn is not None:
@@ -227,6 +230,10 @@ def register_network_tools(mcp, config):
             await ctx.info("Listing BGP sessions...")
 
             async with LibreNMSClient(config) as client:
+                if hostname:
+                    _, error = await lookup_device(client, hostname)
+                    if error:
+                        return error
                 result = await client.get("bgp", params=params or None)
             return paginate_list(result, limit, offset)
 

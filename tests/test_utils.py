@@ -8,6 +8,7 @@ from librenms_mcp.utils import normalize_transport
 from librenms_mcp.utils import optional_segment
 from librenms_mcp.utils import parse_bool
 from librenms_mcp.utils import path_segment
+from librenms_mcp.utils import unique_match
 
 
 @pytest.mark.parametrize(
@@ -231,3 +232,11 @@ def test_http_host_from_env(monkeypatch, raw, expected):
 )
 def test_blank_to_none_trims_like_librenms(value, expected):
     assert blank_to_none(value) == expected
+
+
+def test_unique_match_ignores_entries_without_a_name():
+    """A null name must not match a search for "None" (or a missing one "")."""
+    entries = [{"id": 1, "name": None}, {"id": 2}, {"id": 3, "name": "None"}]
+    assert unique_match(entries, "name", "None") == ({"id": 3, "name": "None"}, [])
+    assert unique_match([{"id": 1, "name": None}], "name", "None") == (None, [])
+    assert unique_match([{"id": 2}], "name", "") == (None, [])

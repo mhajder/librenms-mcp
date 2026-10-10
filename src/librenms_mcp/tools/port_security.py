@@ -8,6 +8,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.device_check import device_error_if_empty
 from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
 
@@ -104,7 +105,12 @@ def register_port_security_tools(mcp, config):
             await ctx.info(f"Getting port security for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("port_security", "device", hostname)
+                result = await device_error_if_empty(
+                    client,
+                    hostname,
+                    await client.get("port_security", "device", hostname),
+                    "port",
+                )
                 return paginate_list(result, limit, offset, key="port")
 
         except Exception as e:

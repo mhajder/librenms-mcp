@@ -8,7 +8,12 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.device_check import device_error_if_empty
+from librenms_mcp.tools.name_refs import PORT_GROUP
+from librenms_mcp.tools.name_refs import route_ref
+from librenms_mcp.utils import blank_to_none
 from librenms_mcp.utils import error_body
+from librenms_mcp.utils import not_found_if_empty
 from librenms_mcp.utils import paginate_list
 
 # The fields LibreNMS searches when ports/search is given only a search term.
@@ -37,7 +42,7 @@ def register_port_tools(mcp, config):
                 default=None,
                 description="""Query parameters for filtering ports:
 - columns: Comma-separated list of fields to return (e.g., "port_id,ifName,ifAlias")
-- device_id: Filter by device ID
+- device_id: Only return ports of this device (device ID or hostname)
 
 Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed, ifOperStatus, ifAdminStatus, etc.""",
             ),
@@ -63,7 +68,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         Get all ports from LibreNMS with optional filters.
 
         Args:
-            query (dict, optional): Filter parameters including columns, device_id, and limit.
+            query (dict, optional): Filter parameters: columns and device_id.
             limit (int): Maximum number of results to return.
             offset (int): Number of results to skip.
 
@@ -73,8 +78,25 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         try:
             await ctx.info("Getting all ports...")
 
+            # LibreNMS's ports endpoint ignores device_id and returns every
+            # port, so a device filter goes to the per-device endpoint instead.
+            # That endpoint defaults to ifName alone, so keep the port_id the
+            # ports endpoint returns by default.
+            params = dict(query or {})
+            device_id = params.pop("device_id", None)
+            device = blank_to_none(None if device_id is None else str(device_id))
+            path: tuple[str, ...] = ("ports",)
+            if device:
+                path = ("devices", device, "ports")
+                params.setdefault("columns", "port_id,ifName")
+
             async with LibreNMSClient(config) as client:
-                result = await client.get("ports", params=query)
+                result = await client.get(*path, params=params or None)
+                if device:
+                    # An unknown device gets "No ports found", as if it had none.
+                    result = await device_error_if_empty(
+                        client, device, result, "ports"
+                    )
             return paginate_list(result, limit, offset, key="ports")
 
         except Exception as e:
@@ -216,7 +238,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         mac: Annotated[
             str,
             Field(
-                description="MAC address to search. Accepts multiple formats: aa:bb:cc:dd:ee:ff, aa-bb-cc-dd-ee-ff, aabb.ccdd.eeff, or aabbccddeeff"
+                description="MAC address of a host to locate (looked up in the forwarding tables, not ports' own MACs). Accepts aa:bb:cc:dd:ee:ff, aa-bb-cc-dd-ee-ff, aabb.ccdd.eeff, or aabbccddeeff"
             ),
         ],
         ctx: Context,
@@ -238,7 +260,13 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         ] = 0,
     ) -> dict:
         """
-        Search ports in LibreNMS by MAC address.
+        Find the switch ports where a MAC address was learned (forwarding table).
+
+        This searches LibreNMS's FDB data, i.e. where a host's MAC appears on
+        the network, not the ports' own hardware addresses: a port's own MAC is
+        not found unless another device learned it. Results are ordered by how
+        many MACs each port has learned, so the access port the host is
+        plugged into usually comes first.
 
         Args:
             mac (str): MAC address in any common format.
@@ -281,7 +309,11 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Getting port {port_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("ports", port_id)
+                return not_found_if_empty(
+                    await client.get("ports", port_id),
+                    "port",
+                    f"Port {port_id} does not exist",
+                )
 
         except Exception as e:
             await ctx.error(f"Error port {port_id}: {e!s}")
@@ -508,7 +540,7 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
         },
     )
     async def port_group_list_ports(
-        name: Annotated[str, Field(description="Port group name")],
+        name: Annotated[str, Field(description="Port group name or ID")],
         ctx: Context,
         limit: Annotated[
             int,
@@ -542,7 +574,8 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             await ctx.info(f"Getting ports in group {name}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("port_groups", name)
+                ref = await route_ref(client, PORT_GROUP, name)
+                result = await client.get("port_groups", ref)
             return paginate_list(result, limit, offset)
 
         except Exception as e:

@@ -4,6 +4,9 @@ Tool arguments come from the model and may be prompt-injected, so a value must
 never be able to steer a request to a different endpoint.
 """
 
+import json
+from urllib.parse import unquote
+
 import httpx2
 import pytest
 from fastmcp import Client
@@ -17,6 +20,17 @@ from librenms_mcp.tools import register_tools
 SVG = b"<svg xmlns='http://www.w3.org/2000/svg'/>"
 
 
+def _librenms_default(request: httpx2.Request) -> httpx2.Response:
+    """Answer like a LibreNMS with every device: a device record for lookups."""
+    parts = request.url.path.split("/")
+    if request.method == "GET" and len(parts) == 5 and parts[3] == "devices":
+        name = unquote(parts[4])
+        return httpx2.Response(
+            200, json={"status": "ok", "devices": [{"device_id": 1, "hostname": name}]}
+        )
+    return httpx2.Response(200, json={"status": "ok"})
+
+
 @pytest.fixture
 def server():
     """Yield (mcp, requests, set_handler) backed by a scripted LibreNMS.
@@ -28,7 +42,7 @@ def server():
     LibreNMSClient._initialized = False
     config = LibreNMSConfig(librenms_url="https://nms.invalid", token="t")
     requests: list[httpx2.Request] = []
-    state = {"handler": lambda _r: httpx2.Response(200, json={"status": "ok"})}
+    state = {"handler": _librenms_default}
 
     def transport(request: httpx2.Request) -> httpx2.Response:
         requests.append(request)
@@ -62,11 +76,11 @@ def server():
         ),
         ("device_get", {"hostname": "sw#1"}, "/api/v0/devices/sw%231"),
         ("device_get", {"hostname": " sw1 "}, "/api/v0/devices/%20sw1%20"),
-        ("poller_group_get", {"poller_group": "a/b"}, "/api/v0/poller_group/a%2Fb"),
+        ("oxidized_config_get", {"hostname": "a/b"}, "/api/v0/oxidized/config/a%2Fb"),
         (
-            "bill_graph_data",
-            {"bill_id": 1, "graph_type": "a/b"},
-            "/api/v0/bills/1/graphdata/a%2Fb",
+            "ports_search_field",
+            {"field": "ifAlias", "search": "uplink to core/1"},
+            "/api/v0/ports/search/ifAlias/uplink%20to%20core%2F1",
         ),
     ],
 )
@@ -86,7 +100,7 @@ async def test_string_arguments_stay_in_one_path_segment(
         ("device_delete", {"hostname": ".."}),
         ("device_delete", {"hostname": "../rules/5"}),
         ("logs_eventlog", {"hostname": "../../devices/core1/discover"}),
-        ("bill_graph_data", {"bill_id": 1, "graph_type": "../../devices"}),
+        ("oxidized_config_get", {"hostname": "../../devices"}),
     ],
 )
 async def test_dot_segments_are_rejected_without_a_request(server, tool, args):
@@ -171,8 +185,8 @@ async def test_arp_search_routes_cidr_and_device(server, args, expected_url):
     mcp, requests, _ = server
     async with Client(mcp) as client:
         await client.call_tool("arp_search", args)
-    # A given device is checked first; the ARP request comes last.
-    assert requests[-1].url.raw_path.decode() == expected_url
+    # The ARP request comes first; a given device is only checked after it.
+    assert requests[0].url.raw_path.decode() == expected_url
 
 
 @pytest.mark.asyncio
@@ -198,12 +212,15 @@ async def test_arp_search_rejects_bad_cidr_prefix(server, query):
 @pytest.mark.asyncio
 async def test_log_tools_count_the_logs_list(server):
     mcp, requests, set_handler = server
-    set_handler(
-        lambda _r: httpx2.Response(
-            200,
-            json={"status": "ok", "a_other": [1, 2, 3], "logs": [{"id": 1}]},
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path.startswith("/api/v0/devices/"):
+            return _librenms_default(request)
+        return httpx2.Response(
+            200, json={"status": "ok", "a_other": [1, 2, 3], "logs": [{"id": 1}]}
         )
-    )
+
+    set_handler(handler)
     async with Client(mcp) as client:
         result = await client.call_tool(
             "logs_syslog", {"hostname": "core1", "limit": 5, "sortorder": "DESC"}
@@ -226,6 +243,28 @@ async def test_log_tools_without_hostname_list_all_devices(server, tool, args):
         await client.call_tool(tool, args)
     log_type = tool.removeprefix("logs_")
     assert requests[0].url.path == f"/api/v0/logs/{log_type}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("query", "expected_url"),
+    [
+        (None, "/api/v0/ports"),
+        ({"columns": "port_id"}, "/api/v0/ports?columns=port_id"),
+        ({"device_id": ""}, "/api/v0/ports"),
+        # LibreNMS's ports endpoint ignores device_id, so the filter is routed.
+        ({"device_id": 1}, "/api/v0/devices/1/ports?columns=port_id%2CifName"),
+        (
+            {"device_id": "sw1", "columns": "port_id,ifName"},
+            "/api/v0/devices/sw1/ports?columns=port_id%2CifName",
+        ),
+    ],
+)
+async def test_ports_list_routes_device_filter(server, query, expected_url):
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool("ports_list", {"query": query})
+    assert requests[0].url.raw_path.decode() == expected_url
 
 
 @pytest.mark.asyncio
@@ -467,10 +506,13 @@ async def test_arp_search_treats_blank_device_as_unset(server):
     async with Client(mcp) as client:
         await client.call_tool("arp_search", {"query": "10.0.0.1", "device": "  "})
         await client.call_tool("arp_search", {"query": "all", "device": " sw1 "})
+    # device is a query parameter, which LibreNMS trims; the device check (made
+    # because the default answer has no entries) must
+    # use the same trimmed value or it would reject what the filter accepts.
     assert [r.url.raw_path.decode() for r in requests] == [
         "/api/v0/resources/ip/arp/10.0.0.1",
-        "/api/v0/devices/sw1",
         "/api/v0/resources/ip/arp/all?device=sw1",
+        "/api/v0/devices/sw1",
     ]
 
 
@@ -553,14 +595,1215 @@ async def test_log_tools_check_the_device_then_fetch_its_logs(server):
 async def test_arp_search_rejects_unknown_devices(server):
     """An unknown device must not read as 'no ARP neighbours'."""
     mcp, requests, set_handler = server
+    set_handler(_unknown_device_without_data("arp"))
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "arp_search", {"query": "all", "device": "typo"}
+        )
+    assert result.data["message"] == "Device typo does not exist"
+    assert [r.url.path for r in requests] == [
+        "/api/v0/resources/ip/arp/all",
+        "/api/v0/devices/typo",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_bgp_sessions_rejects_unknown_devices(server):
+    """LibreNMS drops an unresolvable hostname filter and lists every session."""
+    mcp, requests, set_handler = server
     set_handler(
         lambda _r: httpx2.Response(
-            404, json={"status": "error", "message": "Device typo-sw1 does not exist"}
+            404, json={"status": "error", "message": "Device typo-rtr1 does not exist"}
+        )
+    )
+    async with Client(mcp) as client:
+        result = await client.call_tool("bgp_sessions", {"hostname": "typo-rtr1"})
+    assert result.data["message"] == "Device typo-rtr1 does not exist"
+    assert [r.url.path for r in requests] == ["/api/v0/devices/typo-rtr1"]
+
+
+@pytest.mark.asyncio
+async def test_bgp_sessions_checks_the_device_then_filters(server):
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool("bgp_sessions", {"hostname": "core1"})
+    assert [r.url.raw_path.decode() for r in requests] == [
+        "/api/v0/devices/core1",
+        "/api/v0/bgp?hostname=core1",
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("args", [{}, {"hostname": "  "}])
+async def test_bgp_sessions_without_hostname_lists_everything(server, args):
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool("bgp_sessions", args)
+    assert [r.url.raw_path.decode() for r in requests] == ["/api/v0/bgp"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("search", "hint"),
+    [
+        ("10.0.0.0/24", "e.g. '10.0.0.0'"),
+        ("/24", "e.g. '24'"),
+        ("/", None),
+    ],
+)
+async def test_oxidized_search_explains_slashes_instead_of_failing(
+    server, search, hint
+):
+    """LibreNMS's search route cannot take '/'; it splits into extra segments."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        result = await client.call_tool("oxidized_config_search", {"search": search})
+    assert result.data["status"] == "error"
+    error = result.data["message"]
+    assert "cannot search Oxidized configs" in error
+    if hint:
+        assert hint in error
+    else:
+        assert "e.g." not in error
+    assert requests == []
+
+
+@pytest.mark.asyncio
+async def test_oxidized_search_without_slash_is_sent(server):
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool("oxidized_config_search", {"search": "ip route 0.0.0.0"})
+    assert [r.url.raw_path.decode() for r in requests] == [
+        "/api/v0/oxidized/config/search/ip%20route%200.0.0.0"
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "args", "expected"),
+    [
+        ("logs_eventlog", {"hostname": "   "}, ["/api/v0/logs/eventlog"]),
+        ("bgp_sessions", {"hostname": "   "}, ["/api/v0/bgp"]),
+        (
+            "arp_search",
+            {"query": "all", "device": "   "},
+            ["/api/v0/resources/ip/arp/all"],
+        ),
+    ],
+)
+async def test_blank_filters_mean_no_filter(server, tool, args, expected):
+    """One rule for every optional filter: blank is unset, no device check."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool(tool, args)
+    assert [r.url.raw_path.decode().split("?")[0] for r in requests] == expected
+
+
+@pytest.mark.asyncio
+async def test_bgp_sessions_trims_the_hostname_like_librenms(server):
+    """?hostname= ' core1 ' filters on 'core1' in LibreNMS; check that device."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool("bgp_sessions", {"hostname": " core1 "})
+    assert [r.url.raw_path.decode() for r in requests] == [
+        "/api/v0/devices/core1",
+        "/api/v0/bgp?hostname=core1",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_device_check_reports_non_librenms_answers(server):
+    """A gateway answering 200 with a list must not fail on .get()."""
+    mcp, requests, set_handler = server
+    set_handler(lambda _r: httpx2.Response(200, json=["not", "a", "device"]))
+    async with Client(mcp) as client:
+        result = await client.call_tool("bgp_sessions", {"hostname": "core1"})
+    assert result.data["status"] == "error"
+    assert (
+        "Unexpected response when looking up device 'core1'" in result.data["message"]
+    )
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_services_are_paginated_individually(server):
+    """LibreNMS nests services one level deep: {"services": [[...]]}."""
+    mcp, _, set_handler = server
+    services = [{"service_id": i} for i in range(1, 6)]
+    set_handler(
+        lambda _r: httpx2.Response(200, json={"status": "ok", "services": [services]})
+    )
+    async with Client(mcp) as client:
+        result = await client.call_tool("services_list", {"limit": 2, "offset": 1})
+    assert result.data["services"] == [{"service_id": 2}, {"service_id": 3}]
+    assert (result.data["count"], result.data["total"]) == (2, 5)
+
+
+@pytest.mark.asyncio
+async def test_device_check_fails_closed_on_non_librenms_answers(server):
+    """An SSO proxy's 200 {"message": ...} must not count as 'device exists'."""
+    mcp, requests, set_handler = server
+    set_handler(lambda _r: httpx2.Response(200, json={"message": "login required"}))
+    async with Client(mcp) as client:
+        result = await client.call_tool("logs_eventlog", {"hostname": "core1"})
+    assert result.data["status"] == "error"
+    assert (
+        "Unexpected response when looking up device 'core1'" in result.data["message"]
+    )
+    assert [r.url.path for r in requests] == ["/api/v0/devices/core1"]
+
+
+@pytest.mark.asyncio
+async def test_oxidized_list_rejects_unknown_devices(server):
+    """LibreNMS answers an unknown hostname with [], i.e. 'not backed up'."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devices/typo":
+            return _unknown_device(request)
+        return httpx2.Response(200, json=[])
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool("oxidized_list", {"hostname": "typo"})
+    assert result.data["message"] == "Device typo does not exist"
+    assert [r.url.path for r in requests] == [
+        "/api/v0/oxidized/typo",
+        "/api/v0/devices/typo",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_oxidized_list_with_entries_needs_no_device_lookup(server):
+    """A device the endpoint returns exists; a failing lookup must not matter."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path.startswith("/api/v0/devices/"):
+            return httpx2.Response(200, json={"message": "login required"})
+        return httpx2.Response(200, json=[{"hostname": "core1", "os": "nxos"}])
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool("oxidized_list", {"hostname": "core1"})
+        await client.call_tool("oxidized_list", {})
+    assert result.data["devices"] == [{"hostname": "core1", "os": "nxos"}]
+    assert [r.url.path for r in requests] == [
+        "/api/v0/oxidized/core1",
+        "/api/v0/oxidized",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_oxidized_list_keeps_an_empty_answer_for_a_known_device(server):
+    """A disabled or ignored device exists but is not backed up."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path.startswith("/api/v0/devices/"):
+            return _librenms_default(request)
+        return httpx2.Response(200, json=[])
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool("oxidized_list", {"hostname": "core1"})
+    assert result.data["devices"] == []
+    assert [r.url.path for r in requests] == [
+        "/api/v0/oxidized/core1",
+        "/api/v0/devices/core1",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_oxidized_list_translates_a_device_id_to_its_hostname(server):
+    """Oxidized filters on hostname; an ID would otherwise give an empty list."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devices/1":
+            return httpx2.Response(
+                200,
+                json={
+                    "status": "ok",
+                    "devices": [{"device_id": 1, "hostname": "core1"}],
+                },
+            )
+        if request.url.path == "/api/v0/oxidized/1":
+            return httpx2.Response(200, json=[])
+        return httpx2.Response(200, json=[{"hostname": "core1", "os": "nxos"}])
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool("oxidized_list", {"hostname": "1"})
+    assert [r.url.path for r in requests] == [
+        "/api/v0/oxidized/1",
+        "/api/v0/devices/1",
+        "/api/v0/oxidized/core1",
+    ]
+    assert result.data["devices"] == [{"hostname": "core1", "os": "nxos"}]
+
+
+@pytest.mark.asyncio
+async def test_inventory_flat_rejects_unknown_devices(server):
+    """inventory/{host}/all answers an unknown device with an empty list."""
+    mcp, requests, set_handler = server
+    set_handler(_unknown_device_without_data("inventory"))
+    async with Client(mcp) as client:
+        result = await client.call_tool("inventory_device_flat", {"hostname": "typo"})
+    assert result.data["message"] == "Device typo does not exist"
+    assert [r.url.path for r in requests] == [
+        "/api/v0/inventory/typo/all",
+        "/api/v0/devices/typo",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_oxidized_slash_hint_is_trimmed(server):
+    mcp, _, _ = server
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "oxidized_config_search", {"search": " 10.0.0.0 /24"}
+        )
+    assert "e.g. '10.0.0.0'" in result.data["message"]
+
+
+@pytest.mark.asyncio
+async def test_inventory_rejects_unknown_devices(server):
+    """inventory/{host} answers an unknown device with an empty list too."""
+    mcp, requests, set_handler = server
+    set_handler(_unknown_device_without_data("inventory"))
+    async with Client(mcp) as client:
+        result = await client.call_tool("inventory_device", {"hostname": "typo"})
+    assert result.data["message"] == "Device typo does not exist"
+    assert [r.url.path for r in requests] == [
+        "/api/v0/inventory/typo",
+        "/api/v0/devices/typo",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_device_ports_get_reports_a_missing_port(server):
+    """LibreNMS answers a missing port with status ok and an empty record."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devices/sw1":
+            return httpx2.Response(
+                200, json={"status": "ok", "devices": [{"device_id": 1}]}
+            )
+        return httpx2.Response(200, json={"status": "ok", "port": {"in_rate": "0 bps"}})
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "device_ports_get", {"hostname": "sw1", "ifname": "Po99"}
+        )
+    assert result.data == {
+        "status": "error",
+        "message": "No port named 'Po99' on device 'sw1'",
+    }
+    assert [r.url.path for r in requests] == [
+        "/api/v0/devices/sw1/ports/Po99",
+        "/api/v0/devices/sw1",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_device_ports_get_reports_a_missing_device(server):
+    mcp, _, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devices/typo":
+            return httpx2.Response(
+                404, json={"status": "error", "message": "Device typo does not exist"}
+            )
+        return httpx2.Response(200, json={"status": "ok", "port": {"in_rate": "0 bps"}})
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "device_ports_get", {"hostname": "typo", "ifname": "Po1"}
+        )
+    assert result.data["message"] == "Device typo does not exist"
+
+
+@pytest.mark.asyncio
+async def test_device_ports_get_found_port_costs_one_request(server):
+    mcp, requests, set_handler = server
+    set_handler(
+        lambda _r: httpx2.Response(
+            200, json={"status": "ok", "port": {"port_id": 7, "ifName": "Po1"}}
         )
     )
     async with Client(mcp) as client:
         result = await client.call_tool(
-            "arp_search", {"query": "all", "device": "typo-sw1"}
+            "device_ports_get", {"hostname": "sw1", "ifname": "Po1"}
         )
-    assert result.data["message"] == "Device typo-sw1 does not exist"
-    assert [r.url.path for r in requests] == ["/api/v0/devices/typo-sw1"]
+    assert result.data["port"]["port_id"] == 7
+    assert len(requests) == 1
+
+
+def _unknown_device(_request: httpx2.Request) -> httpx2.Response:
+    return httpx2.Response(
+        404, json={"status": "error", "message": "Device typo does not exist"}
+    )
+
+
+def _unknown_device_without_data(key: str):
+    """Answer like LibreNMS for device 'typo', which does not exist.
+
+    The device lookup fails; data endpoints answer with an empty list under
+    key, as LibreNMS does for a device it cannot resolve.
+    """
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devices/typo":
+            return _unknown_device(request)
+        return httpx2.Response(200, json={"status": "ok", key: []})
+
+    return handler
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "args", "key", "path"),
+    [
+        (
+            "device_availability",
+            {},
+            "availability",
+            "/api/v0/devices/typo/availability",
+        ),
+        ("device_outages", {}, "outages", "/api/v0/devices/typo/outages"),
+        ("device_ports", {}, "ports", "/api/v0/devices/typo/ports"),
+        ("health_list", {}, "graphs", "/api/v0/devices/typo/health"),
+        (
+            "health_by_type",
+            {"type": "device_state"},
+            "graphs",
+            "/api/v0/devices/typo/health/device_state",
+        ),
+        (
+            "health_sensor_get",
+            {"type": "device_state", "sensor_id": 1},
+            "graphs",
+            "/api/v0/devices/typo/health/device_state/1",
+        ),
+        ("port_security_device", {}, "port", "/api/v0/port_security/device/typo"),
+        ("services_for_device", {}, "services", "/api/v0/services/typo"),
+    ],
+)
+async def test_device_scoped_tools_reject_unknown_devices(
+    server, tool, args, key, path
+):
+    """Each answers an unknown device with no data; only then is it looked up."""
+    mcp, requests, set_handler = server
+    set_handler(_unknown_device_without_data(key))
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, {"hostname": "typo", **args})
+    assert result.data["message"] == "Device typo does not exist"
+    assert [r.url.path for r in requests] == [path, "/api/v0/devices/typo"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "args", "key"),
+    [
+        ("device_outages", {}, "outages"),
+        ("device_ports", {}, "ports"),
+        ("health_list", {}, "graphs"),
+        ("inventory_device", {}, "inventory"),
+        ("port_security_device", {}, "port"),
+        ("services_for_device", {}, "services"),
+    ],
+)
+async def test_device_scoped_tools_with_data_cost_one_request(server, tool, args, key):
+    """Data proves the device exists, so there is no separate lookup."""
+    mcp, requests, set_handler = server
+    set_handler(
+        lambda _r: httpx2.Response(200, json={"status": "ok", key: [{"id": 1}]})
+    )
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, {"hostname": "sw1", **args})
+    assert result.data.get("status") != "error"
+    assert len(requests) == 1
+
+
+# devices/{hostname}/graphs lists these for any device ID, even an unknown one.
+_ALWAYS_LISTED = [
+    {"desc": "Poller Time", "name": "device_poller_perf"},
+    {"desc": "Ping Response", "name": "device_icmp_perf"},
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "always_listed",
+    [
+        _ALWAYS_LISTED,
+        # Releases before 25.1 name the ping graph device_ping_perf.
+        [
+            {"desc": "Poller Time", "name": "device_poller_perf"},
+            {"desc": "Ping Response", "name": "device_ping_perf"},
+        ],
+    ],
+)
+async def test_device_graphs_list_rejects_unknown_devices(server, always_listed):
+    """The two graphs LibreNMS always lists must not pass for a real device."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devices/typo":
+            return _unknown_device(request)
+        return httpx2.Response(200, json={"status": "ok", "graphs": always_listed})
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool("device_graphs_list", {"hostname": "typo"})
+    assert result.data["message"] == "Device typo does not exist"
+    assert [r.url.path for r in requests] == [
+        "/api/v0/devices/typo/graphs",
+        "/api/v0/devices/typo",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_device_graphs_list_with_device_graphs_costs_one_request(server):
+    mcp, requests, set_handler = server
+    graphs = [*_ALWAYS_LISTED, {"desc": "System Uptime", "name": "device_uptime"}]
+    set_handler(
+        lambda _r: httpx2.Response(200, json={"status": "ok", "graphs": graphs})
+    )
+    async with Client(mcp) as client:
+        result = await client.call_tool("device_graphs_list", {"hostname": "sw1"})
+    assert result.data["graphs"] == graphs
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_device_links_checks_the_device_first(server):
+    """device_links drops the filter and lists every device's links."""
+    mcp, requests, set_handler = server
+    set_handler(_unknown_device)
+    async with Client(mcp) as client:
+        result = await client.call_tool("device_links", {"hostname": "typo"})
+    assert result.data["message"] == "Device typo does not exist"
+    assert [r.url.path for r in requests] == ["/api/v0/devices/typo"]
+
+
+@pytest.mark.asyncio
+async def test_service_add_defaults_ip_to_the_device_hostname(server):
+    """LibreNMS 500s without "ip"; for an empty one it stores the poller target."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool(
+            "service_add", {"hostname": "1", "payload": {"type": "icmp"}}
+        )
+        await client.call_tool(
+            "service_add",
+            {"hostname": "1", "payload": {"type": "icmp", "ip": "192.0.2.9"}},
+        )
+    posts = [json.loads(r.content) for r in requests if r.method == "POST"]
+    assert posts == [{"type": "icmp", "ip": ""}, {"type": "icmp", "ip": "192.0.2.9"}]
+    # The device is confirmed before every add: add_service_for_host does not
+    # check it, explicit ip or not.
+    assert [r.method for r in requests] == ["GET", "POST", "GET", "POST"]
+
+
+@pytest.mark.asyncio
+async def test_service_add_rejects_unknown_devices(server):
+    """add_service_for_host does not check the device exists."""
+    mcp, requests, set_handler = server
+    set_handler(_unknown_device)
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "service_add", {"hostname": "typo", "payload": {"type": "icmp"}}
+        )
+    assert result.data["message"] == "Device typo does not exist"
+    assert [r.method for r in requests] == ["GET"]
+
+
+@pytest.mark.asyncio
+async def test_alert_get_by_id_looks_in_every_state(server):
+    """alerts/{id} only searches active alerts unless a state is given."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool("alert_get_by_id", {"alert_id": 42})
+    assert requests[0].url.path == "/api/v0/alerts/42"
+    states = requests[0].url.params["state"].split(",")
+    # Every state LibreNMS defines today, plus room for ones it adds later.
+    assert {"0", "1", "2", "3", "4", "5"} < set(states)
+
+
+@pytest.mark.asyncio
+async def test_bill_get_with_a_period_keeps_an_empty_answer(server):
+    """With a period LibreNMS joins the history; empty means no data, not no bill."""
+    mcp, requests, set_handler = server
+    body = {"status": "ok", "bills": [], "count": 0}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.params.get("period"):
+            return httpx2.Response(200, json=body)
+        return httpx2.Response(
+            200, json={"status": "ok", "bills": [{"bill_id": 7}], "count": 1}
+        )
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "bill_get", {"bill_id": 7, "period": "previous"}
+        )
+    assert result.data == body
+    # The plain lookup confirms the bill exists.
+    assert [dict(r.url.params) for r in requests] == [{"period": "previous"}, {}]
+
+
+@pytest.mark.asyncio
+async def test_bill_get_reports_a_failed_existence_check(server):
+    """A failed plain lookup proves nothing; it must not pass as 'no data'."""
+    mcp, _, set_handler = server
+    denied = {"status": "error", "message": "Denied"}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.params.get("period"):
+            return httpx2.Response(200, json={"status": "ok", "bills": []})
+        return httpx2.Response(403, json=denied)
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "bill_get", {"bill_id": 7, "period": "previous"}
+        )
+    assert result.data == denied
+
+
+@pytest.mark.asyncio
+async def test_bill_get_reports_a_missing_bill(server):
+    mcp, requests, set_handler = server
+    body = {"status": "ok", "bills": [], "count": 0}
+    set_handler(lambda _r: httpx2.Response(200, json=body))
+    async with Client(mcp) as client:
+        with_period = await client.call_tool(
+            "bill_get", {"bill_id": 7, "period": "previous"}
+        )
+        plain = await client.call_tool("bill_get", {"bill_id": 7})
+        # LibreNMS acts on "previous" alone; any other period is a plain lookup.
+        other_period = await client.call_tool(
+            "bill_get", {"bill_id": 7, "period": "current"}
+        )
+    not_found = {"status": "error", "message": "Bill 7 does not exist"}
+    assert with_period.data == not_found
+    assert plain.data == not_found
+    assert other_period.data == not_found
+    assert len(requests) == 4
+
+
+@pytest.mark.asyncio
+async def test_health_sensor_get_reports_a_missing_sensor(server):
+    """With the device confirmed, an empty answer means no such sensor."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devices/core1":
+            return _librenms_default(request)
+        return httpx2.Response(200, json={"status": "ok", "graphs": []})
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "health_sensor_get",
+            {"hostname": "core1", "type": "temperature", "sensor_id": 999},
+        )
+    assert result.data == {
+        "status": "error",
+        "message": "Sensor 999 (temperature) does not exist on core1",
+    }
+    assert len(requests) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("sensor_device_id", "unknown_device"), [(2, False), (1, True)]
+)
+async def test_health_sensor_get_checks_the_sensor_device(
+    server, sensor_device_id, unknown_device
+):
+    """LibreNMS finds the sensor by ID alone; it must belong to the device."""
+    mcp, _, set_handler = server
+    sensor = {"sensor_id": 5, "device_id": sensor_device_id}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devices/typo":
+            return _unknown_device(request)
+        if request.url.path == "/api/v0/devices/core1":
+            return _librenms_default(request)
+        return httpx2.Response(200, json={"status": "ok", "graphs": [sensor]})
+
+    set_handler(handler)
+    hostname = "typo" if unknown_device else "core1"
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "health_sensor_get",
+            {"hostname": hostname, "type": "temperature", "sensor_id": 5},
+        )
+    if unknown_device:
+        assert result.data["message"] == "Device typo does not exist"
+    else:
+        assert result.data == {
+            "status": "error",
+            "message": "Sensor 5 (temperature) does not exist on core1",
+        }
+
+
+@pytest.mark.asyncio
+async def test_health_sensor_get_returns_the_device_sensor(server):
+    mcp, _, set_handler = server
+    body = {"status": "ok", "graphs": [{"sensor_id": 5, "device_id": 1}]}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devices/core1":
+            return _librenms_default(request)
+        return httpx2.Response(200, json=body)
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "health_sensor_get",
+            {"hostname": "core1", "type": "temperature", "sensor_id": 5},
+        )
+    assert result.data == body
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("type", "row", "found"),
+    [
+        # LibreNMS <= 25.1 returns sensor 5 whatever type the path names.
+        ("temperature", {"sensor_class": "voltage"}, False),
+        ("temperature", {"sensor_class": "temperature"}, True),
+        # LibreNMS drops "device_" and compares classes case-insensitively.
+        ("device_Temperature", {"sensor_class": "temperature"}, True),
+        # Processor, storage and mempool rows carry no sensor_class.
+        ("processor", {"processor_id": 5}, True),
+    ],
+)
+async def test_health_sensor_get_checks_the_sensor_type(server, type, row, found):
+    mcp, _, set_handler = server
+    body = {"status": "ok", "graphs": [{"sensor_id": 5, "device_id": 1, **row}]}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devices/core1":
+            return _librenms_default(request)
+        return httpx2.Response(200, json=body)
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "health_sensor_get",
+            {"hostname": "core1", "type": type, "sensor_id": 5},
+        )
+    if found:
+        assert result.data == body
+    else:
+        assert result.data == {
+            "status": "error",
+            "message": f"Sensor 5 ({type}) does not exist on core1",
+        }
+
+
+@pytest.mark.asyncio
+async def test_all_digit_group_ref_is_sent_when_the_list_is_denied(server):
+    """LibreNMS checks permissions per group; listing them all may be denied."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/devicegroups":
+            return httpx2.Response(403, json={"status": "error", "message": "Denied"})
+        return httpx2.Response(200, json={"status": "ok", "devices": []})
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool("devicegroup_devices", {"name": "7"})
+    assert result.data["status"] == "ok"
+    assert [r.url.path for r in requests] == [
+        "/api/v0/devicegroups",
+        "/api/v0/devicegroups/7",
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        ({}, ["/api/v0/poller_group"]),
+        ({"poller_group": "all"}, ["/api/v0/poller_group"]),
+        ({"poller_group": " ALL "}, ["/api/v0/poller_group"]),
+        # An all-digit reference is checked against the group names first.
+        ({"poller_group": "2"}, ["/api/v0/poller_group", "/api/v0/poller_group/2"]),
+    ],
+)
+async def test_poller_group_get_lists_all_without_a_group(server, args, expected):
+    """LibreNMS looks up 'all' as a group name; listing needs no segment."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool("poller_group_get", args)
+    assert [r.url.path for r in requests] == expected
+
+
+@pytest.mark.asyncio
+async def test_poller_group_get_refuses_id_zero(server):
+    """LibreNMS reads "0" as no group and would answer with every group."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        result = await client.call_tool("poller_group_get", {"poller_group": "0"})
+    assert result.data["status"] == "error"
+    assert "Poller group 0" in result.data["message"]
+    # Only the name check ran; poller_group/0 was never requested.
+    assert [r.url.path for r in requests] == ["/api/v0/poller_group"]
+
+
+@pytest.mark.asyncio
+async def test_poller_group_named_zero_goes_by_its_id(server):
+    mcp, requests, set_handler = server
+    set_handler(
+        lambda _r: httpx2.Response(
+            200,
+            json={
+                "status": "ok",
+                "get_poller_group": [{"id": 5, "group_name": "0"}],
+            },
+        )
+    )
+    async with Client(mcp) as client:
+        await client.call_tool("poller_group_get", {"poller_group": "0"})
+    assert requests[-1].url.path == "/api/v0/poller_group/5"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "extra", "method", "path"),
+    [
+        ("location_get", {}, "GET", "/api/v0/location/7"),
+        ("location_edit", {"payload": {"lat": 1}}, "PATCH", "/api/v0/locations/7"),
+    ],
+)
+async def test_location_names_with_a_slash_go_by_id(server, tool, extra, method, path):
+    """A '/' in the name splits LibreNMS's route; the ID always works."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/resources/locations":
+            return httpx2.Response(
+                200,
+                json={
+                    "status": "ok",
+                    "locations": [{"id": 7, "location": "DC1/Room 2"}],
+                },
+            )
+        return httpx2.Response(200, json={"status": "ok"})
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        await client.call_tool(tool, {"location": "DC1/Room 2", **extra})
+    assert [(r.method, r.url.path) for r in requests][-1] == (method, path)
+
+
+def _device_groups(*groups: tuple[int, str]):
+    """Answer devicegroups with the given (id, name) groups, else status ok."""
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.method == "GET" and request.url.path == "/api/v0/devicegroups":
+            return httpx2.Response(
+                200,
+                json={
+                    "status": "ok",
+                    "groups": [{"id": i, "name": n} for i, n in groups],
+                },
+            )
+        return httpx2.Response(200, json={"status": "ok"})
+
+    return handler
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("groups", "ref", "expected_path"),
+    [
+        # LibreNMS reads "2024" as an ID, so the group named so goes by its ID.
+        ([(7, "2024")], "2024", "/api/v0/devicegroups/7"),
+        # Nobody is named "7": it is the ID, as meant.
+        ([(7, "core")], "7", "/api/v0/devicegroups/7"),
+        # The name and the ID are the same group.
+        ([(7, "7")], "7", "/api/v0/devicegroups/7"),
+        # An unknown ID is left to LibreNMS to report.
+        ([(7, "core")], "99", "/api/v0/devicegroups/99"),
+    ],
+)
+async def test_all_digit_group_refs_go_to_the_meant_group(
+    server, groups, ref, expected_path
+):
+    mcp, requests, set_handler = server
+    set_handler(_device_groups(*groups))
+    async with Client(mcp) as client:
+        await client.call_tool("devicegroup_delete", {"name": ref})
+    assert (requests[-1].method, requests[-1].url.path) == ("DELETE", expected_path)
+
+
+@pytest.mark.asyncio
+async def test_all_digit_group_ref_naming_another_group_is_refused(server):
+    """ "2024" is group 7's name and group 2024's ID: deleting either is a guess."""
+    mcp, requests, set_handler = server
+    set_handler(_device_groups((7, "2024"), (2024, "core")))
+    async with Client(mcp) as client:
+        result = await client.call_tool("devicegroup_delete", {"name": "2024"})
+    assert result.data["status"] == "error"
+    assert "both the ID of device group 'core'" in result.data["message"]
+    assert [r.method for r in requests] == ["GET"]
+
+
+@pytest.mark.asyncio
+async def test_all_digit_group_id_shared_by_several_names_points_to_its_name(server):
+    """ "Use the ID" would loop: the caller already sent group 2024's ID."""
+    mcp, requests, set_handler = server
+    set_handler(_device_groups((2024, "core"), (1, "2024"), (2, "2024")))
+    async with Client(mcp) as client:
+        result = await client.call_tool("devicegroup_delete", {"name": "2024"})
+    assert result.data["status"] == "error"
+    assert "both the ID of device group 'core'" in result.data["message"]
+    assert not result.data["message"].endswith("use the ID")
+    assert [r.method for r in requests] == ["GET"]
+
+
+@pytest.mark.asyncio
+async def test_all_digit_group_id_among_its_namesakes_names_the_others(server):
+    """Groups 5 and 9 are both named "5": "use the ID" would loop for group 5."""
+    mcp, requests, set_handler = server
+    set_handler(_device_groups((5, "5"), (9, "5")))
+    async with Client(mcp) as client:
+        result = await client.call_tool("devicegroup_delete", {"name": "5"})
+    assert result.data["status"] == "error"
+    assert "use ID 9 for the others" in result.data["message"]
+    assert [r.method for r in requests] == ["GET"]
+
+
+@pytest.mark.asyncio
+async def test_all_digit_group_ref_with_leading_zeros_is_read_as_the_id(server):
+    """LibreNMS reads "007" as ID 7, so a group named "007" conflicts with it."""
+    mcp, requests, set_handler = server
+    set_handler(_device_groups((7, "core"), (12, "007")))
+    async with Client(mcp) as client:
+        result = await client.call_tool("devicegroup_delete", {"name": "007"})
+    assert result.data["status"] == "error"
+    assert "both the ID of device group 'core'" in result.data["message"]
+    assert [r.method for r in requests] == ["GET"]
+
+
+@pytest.mark.asyncio
+async def test_location_names_without_a_slash_need_no_lookup(server):
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool("location_get", {"location": "DC1"})
+    assert [r.url.path for r in requests] == ["/api/v0/location/DC1"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "args", "key", "message"),
+    [
+        ("alert_get_by_id", {"alert_id": 9}, "alerts", "Alert 9 does not exist"),
+        ("alert_rule_get", {"rule_id": 9}, "rules", "Alert rule 9 does not exist"),
+        (
+            "alert_template_get",
+            {"template_id": 9},
+            "alert_templates",
+            "Alert template 9 does not exist",
+        ),
+        ("bill_get", {"bill_id": 9}, "bills", "Bill 9 does not exist"),
+        ("port_get", {"port_id": 9}, "port", "Port 9 does not exist"),
+    ],
+)
+async def test_lookups_by_unknown_id_report_not_found(server, tool, args, key, message):
+    """LibreNMS answers an unknown ID with status ok and an empty list."""
+    mcp, _, set_handler = server
+    set_handler(
+        lambda _r: httpx2.Response(200, json={"status": "ok", key: [], "count": 0})
+    )
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, args)
+    assert result.data == {"status": "error", "message": message}
+
+
+@pytest.mark.asyncio
+async def test_lookups_by_known_id_are_unchanged(server):
+    mcp, _, set_handler = server
+    body = {"status": "ok", "port": [{"port_id": 33}], "count": 1}
+    set_handler(lambda _r: httpx2.Response(200, json=body))
+    async with Client(mcp) as client:
+        result = await client.call_tool("port_get", {"port_id": 33})
+    assert result.data == body
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "message"),
+    [
+        ("alert_acknowledge", "No Alert by that ID"),
+        ("alert_unmute", "No alert by that ID"),
+    ],
+)
+async def test_alert_actions_on_unknown_alerts_are_errors(server, tool, message):
+    """LibreNMS reports 'No alert by that ID' with status ok, like a success."""
+    mcp, _, set_handler = server
+    set_handler(
+        lambda _r: httpx2.Response(200, json={"status": "ok", "message": message})
+    )
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, {"alert_id": 999})
+    assert result.data == {"status": "error", "message": message}
+
+
+@pytest.mark.asyncio
+async def test_unknown_location_name_with_a_slash_is_reported(server):
+    """Sent as a name it would split the route ('This API route doesn't exist')."""
+    mcp, requests, set_handler = server
+    set_handler(lambda _r: httpx2.Response(200, json={"status": "ok", "locations": []}))
+    async with Client(mcp) as client:
+        result = await client.call_tool("location_get", {"location": "DC9/Room 1"})
+    assert result.data == {
+        "status": "error",
+        "message": "Location 'DC9/Room 1' does not exist",
+    }
+    assert [r.url.path for r in requests] == ["/api/v0/resources/locations"]
+
+
+@pytest.mark.asyncio
+async def test_location_delete_goes_by_id_for_names_with_a_slash(server):
+    """del_location takes an ID too (ctype_digit -> where id); verified live."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/resources/locations":
+            return httpx2.Response(
+                200,
+                json={
+                    "status": "ok",
+                    "locations": [{"id": 7, "location": "DC1/Room 2"}],
+                },
+            )
+        return httpx2.Response(200, json={"status": "ok"})
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        await client.call_tool("location_delete", {"location": "DC1/Room 2"})
+    assert [(r.method, r.url.path) for r in requests] == [
+        ("GET", "/api/v0/resources/locations"),
+        ("DELETE", "/api/v0/locations/7"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_location_lookup_failure_is_not_reported_as_missing(server):
+    mcp, _, set_handler = server
+    set_handler(
+        lambda _r: httpx2.Response(403, json={"status": "error", "message": "Denied"})
+    )
+    async with Client(mcp) as client:
+        result = await client.call_tool("location_get", {"location": "DC1/Room 2"})
+    assert result.data == {
+        "status": "error",
+        "message": "Could not look up location 'DC1/Room 2': Denied",
+    }
+
+
+@pytest.mark.asyncio
+async def test_location_names_with_a_slash_match_case_insensitively(server):
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path == "/api/v0/resources/locations":
+            return httpx2.Response(
+                200,
+                json={
+                    "status": "ok",
+                    "locations": [{"id": 7, "location": "DC1/Room 2"}],
+                },
+            )
+        return httpx2.Response(200, json={"status": "ok"})
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        await client.call_tool("location_get", {"location": "dc1/room 2"})
+    assert requests[-1].url.path == "/api/v0/location/7"
+
+
+def _groups_handler(request: httpx2.Request) -> httpx2.Response:
+    if request.url.path in ("/api/v0/devicegroups", "/api/v0/port_groups"):
+        return httpx2.Response(
+            200, json={"status": "ok", "groups": [{"id": 4, "name": "Site A/Core"}]}
+        )
+    return httpx2.Response(200, json={"status": "ok"})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "extra", "method", "path"),
+    [
+        ("devicegroup_devices", {}, "GET", "/api/v0/devicegroups/4"),
+        (
+            "devicegroup_update",
+            {"payload": {"desc": "x"}},
+            "PATCH",
+            "/api/v0/devicegroups/4",
+        ),
+        ("devicegroup_delete", {}, "DELETE", "/api/v0/devicegroups/4"),
+        (
+            "devicegroup_add_devices",
+            {"payload": {"devices": [1]}},
+            "POST",
+            "/api/v0/devicegroups/4/devices",
+        ),
+        (
+            "devicegroup_remove_devices",
+            {"payload": {"devices": [1]}},
+            "DELETE",
+            "/api/v0/devicegroups/4/devices",
+        ),
+        (
+            "devicegroup_set_maintenance",
+            {"payload": {"duration": "01:00"}},
+            "POST",
+            "/api/v0/devicegroups/4/maintenance",
+        ),
+        ("port_group_list_ports", {}, "GET", "/api/v0/port_groups/4"),
+    ],
+)
+async def test_group_names_with_a_slash_go_by_id(server, tool, extra, method, path):
+    """A '/' in the name splits LibreNMS's route; every group route takes the ID."""
+    mcp, requests, set_handler = server
+    set_handler(_groups_handler)
+    async with Client(mcp) as client:
+        await client.call_tool(tool, {"name": "Site A/Core", **extra})
+    assert [(r.method, r.url.path) for r in requests][-1] == (method, path)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "label"),
+    [("devicegroup_devices", "Device group"), ("port_group_list_ports", "Port group")],
+)
+async def test_unknown_group_name_with_a_slash_is_reported(server, tool, label):
+    mcp, requests, set_handler = server
+    set_handler(_groups_handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, {"name": "Site B/Edge"})
+    assert result.data == {
+        "status": "error",
+        "message": f"{label} 'Site B/Edge' does not exist",
+    }
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_group_names_without_a_slash_need_no_lookup(server):
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool("devicegroup_devices", {"name": "Core"})
+    assert [r.url.path for r in requests] == ["/api/v0/devicegroups/Core"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("DC1/Pollers", ["/api/v0/poller_group", "/api/v0/poller_group/3"]),
+        ("DC1", ["/api/v0/poller_group/DC1"]),
+    ],
+)
+async def test_poller_group_names_with_a_slash_go_by_id(server, name, expected):
+    """get_poller_group takes an ID too (ctype_digit -> find)."""
+    mcp, requests, set_handler = server
+    set_handler(
+        lambda _r: httpx2.Response(
+            200,
+            json={
+                "status": "ok",
+                "get_poller_group": [{"id": 3, "group_name": "DC1/Pollers"}],
+            },
+        )
+    )
+    async with Client(mcp) as client:
+        await client.call_tool("poller_group_get", {"poller_group": name})
+    assert [r.url.path for r in requests] == expected
+
+
+@pytest.mark.asyncio
+async def test_unknown_poller_group_name_with_a_slash_is_reported(server):
+    mcp, _, set_handler = server
+    set_handler(
+        lambda _r: httpx2.Response(200, json={"status": "ok", "get_poller_group": []})
+    )
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "poller_group_get", {"poller_group": "DC9/Pollers"}
+        )
+    assert result.data == {
+        "status": "error",
+        "message": "Poller group 'DC9/Pollers' does not exist",
+    }
+
+
+@pytest.mark.asyncio
+async def test_service_add_with_an_ip_still_rejects_unknown_devices(server):
+    """An explicit ip used to skip the check and could orphan a service."""
+    mcp, requests, set_handler = server
+    set_handler(_unknown_device)
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "service_add",
+            {"hostname": "999", "payload": {"type": "icmp", "ip": "10.0.0.1"}},
+        )
+    assert result.data["message"] == "Device typo does not exist"
+    assert [r.method for r in requests] == ["GET"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"status": "ok"},
+        {"status": "ok", "devices": []},
+        {"message": "login required"},
+    ],
+)
+async def test_device_check_requires_the_device_record(server, body):
+    """Only LibreNMS's "ok" with the device record confirms a device."""
+    mcp, requests, set_handler = server
+    set_handler(lambda _r: httpx2.Response(200, json=body))
+    async with Client(mcp) as client:
+        result = await client.call_tool("logs_eventlog", {"hostname": "core1"})
+    assert result.data["status"] == "error"
+    assert (
+        "Unexpected response when looking up device 'core1'" in result.data["message"]
+    )
+    assert [r.url.path for r in requests] == ["/api/v0/devices/core1"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "args"),
+    [
+        ("oxidized_config_search", {"search": "10.0.0.0/24"}),
+        ("arp_search", {"query": "2001:db8::/64"}),
+        ("arp_search", {"query": "10.0.0.0/99"}),
+        ("arp_search", {"query": "10.0.0.1", "device": "core1"}),
+    ],
+)
+async def test_local_validation_errors_use_the_librenms_shape(server, tool, args):
+    """Callers check status == "error" for LibreNMS's and our own errors alike."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, args)
+    assert result.data["status"] == "error"
+    assert result.data["message"]
+    assert "error" not in result.data
+    assert requests == []

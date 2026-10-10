@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.device_check import lookup_device
 from librenms_mcp.utils import error_body
 from librenms_mcp.utils import optional_segment
 
@@ -81,15 +82,13 @@ async def _list_logs(
     if sortorder is not None:
         params["sortorder"] = sortorder
 
-    host_segment = optional_segment(hostname)
+    host = optional_segment(hostname)
     async with LibreNMSClient(config) as client:
-        if host_segment:
-            # LibreNMS ignores a hostname it cannot resolve and returns every
-            # device's logs, which would read as this device's. Check first.
-            device = await client.get("devices", *host_segment)
-            if device.get("status") == "error":
-                return device
-        result = await client.get("logs", log_type, *host_segment, params=params)
+        if host:
+            _, error = await lookup_device(client, host[0])
+            if error:
+                return error
+        result = await client.get("logs", log_type, *host, params=params)
 
     if isinstance(result, dict) and result.get("status") == "ok":
         logs = result.get("logs")

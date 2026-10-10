@@ -10,7 +10,16 @@ from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.utils import error_body
+from librenms_mcp.utils import error_if_no_alert
+from librenms_mcp.utils import not_found_if_empty
 from librenms_mcp.utils import paginate_list
+
+# Alert states to search when looking an alert up by ID. LibreNMS has no "any
+# state" value, and LibreNMS\Enum\AlertState defines 0-5 (0 = recovered,
+# 1 = active, 2 = acknowledged, 3 = worse, 4 = better, 5 = changed). 6-15 are
+# asked for too, so an alert in a state LibreNMS adds later is not reported as
+# missing; a state no alert has matches nothing.
+ALL_ALERT_STATES = ",".join(str(state) for state in range(16))
 
 
 def register_alert_tools(mcp, config):
@@ -136,7 +145,17 @@ def register_alert_tools(mcp, config):
             await ctx.info(f"Retrieving alert {alert_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("alerts", alert_id)
+                # alerts/{id} only searches active alerts (state 1) unless told
+                # otherwise; ask for every state, or an alert in any other
+                # state would come back empty, i.e. "does not exist". LibreNMS
+                # splits state on commas (since at least 21.1).
+                return not_found_if_empty(
+                    await client.get(
+                        "alerts", alert_id, params={"state": ALL_ALERT_STATES}
+                    ),
+                    "alerts",
+                    f"Alert {alert_id} does not exist",
+                )
 
         except Exception as e:
             await ctx.error(f"Error retrieving alert {alert_id}: {e!s}")
@@ -189,7 +208,9 @@ def register_alert_tools(mcp, config):
             await ctx.info(f"Acknowledging alert {alert_id}")
 
             async with LibreNMSClient(config) as client:
-                return await client.put("alerts", alert_id, data=data or None)
+                return error_if_no_alert(
+                    await client.put("alerts", alert_id, data=data or None)
+                )
 
         except Exception as e:
             await ctx.error(f"Error acknowledging alert {alert_id}: {e!s}")
@@ -220,7 +241,10 @@ def register_alert_tools(mcp, config):
             await ctx.info(f"Unmuting alert {alert_id}")
 
             async with LibreNMSClient(config) as client:
-                return await client.put("alerts", "unmute", alert_id)
+                # unmute_alert appends a timestamped note on every call, so an
+                # existing alert always changes a row; "No alert by that ID"
+                # means the alert really does not exist.
+                return error_if_no_alert(await client.put("alerts", "unmute", alert_id))
 
         except Exception as e:
             await ctx.error(f"Error unmuting alert {alert_id}: {e!s}")
@@ -299,7 +323,11 @@ def register_alert_tools(mcp, config):
             await ctx.info(f"Getting details for rule {rule_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("rules", rule_id)
+                return not_found_if_empty(
+                    await client.get("rules", rule_id),
+                    "rules",
+                    f"Alert rule {rule_id} does not exist",
+                )
 
         except Exception as e:
             await ctx.error(f"Error getting rule {rule_id}: {e!s}")
@@ -507,7 +535,11 @@ Example:
             await ctx.info(f"Getting alert template {template_id}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("alert_templates", template_id)
+                return not_found_if_empty(
+                    await client.get("alert_templates", template_id),
+                    "alert_templates",
+                    f"Alert template {template_id} does not exist",
+                )
 
         except Exception as e:
             await ctx.error(f"Error getting alert template {template_id}: {e!s}")

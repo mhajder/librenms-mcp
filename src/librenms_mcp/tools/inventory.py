@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.device_check import device_error_if_empty
 from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
 
@@ -84,7 +85,15 @@ def register_inventory_tools(mcp, config):
             await ctx.info(f"Getting inventory for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("inventory", hostname, params=params or None)
+                # inventory/{hostname} answers an unknown device ID with an
+                # empty list, which would read as "no inventory", and an
+                # unknown hostname with a vague "Invalid device provided".
+                result = await device_error_if_empty(
+                    client,
+                    hostname,
+                    await client.get("inventory", hostname, params=params or None),
+                    "inventory",
+                )
             return paginate_list(result, limit, offset, key="inventory")
 
         except Exception as e:
@@ -134,7 +143,14 @@ def register_inventory_tools(mcp, config):
             await ctx.info(f"Getting flattened inventory for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("inventory", hostname, "all")
+                # inventory/{hostname}/all answers an unknown device with an
+                # empty list, which would read as "no inventory".
+                result = await device_error_if_empty(
+                    client,
+                    hostname,
+                    await client.get("inventory", hostname, "all"),
+                    "inventory",
+                )
             return paginate_list(result, limit, offset, key="inventory")
 
         except Exception as e:
