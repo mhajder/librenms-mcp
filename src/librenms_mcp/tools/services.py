@@ -9,8 +9,27 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.device_check import device_error_if_empty
+from librenms_mcp.tools.device_check import lookup_device
 from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
+
+
+def _flatten_services(result: Any) -> Any:
+    """Unwrap LibreNMS's nested services list so pagination sees each service.
+
+    The services endpoints answer ``{"services": [[{...}, {...}]]}``: one list
+    per device group, wrapped in an outer list. Paginating that as is would
+    page the wrapper (count and total always 1) instead of the services.
+    """
+    if not isinstance(result, dict):
+        return result
+    services = result.get("services")
+    if isinstance(services, list) and all(
+        isinstance(group, list) for group in services
+    ):
+        return {**result, "services": [svc for group in services for svc in group]}
+    return result
 
 
 def register_service_tools(mcp, config):
@@ -81,7 +100,9 @@ def register_service_tools(mcp, config):
 
             async with LibreNMSClient(config) as client:
                 result = await client.get("services", params=params or None)
-            return paginate_list(result, limit, offset, key="services")
+            return paginate_list(
+                _flatten_services(result), limit, offset, key="services"
+            )
 
         except Exception as e:
             await ctx.error(f"Error listing services: {e!s}")
@@ -150,7 +171,15 @@ def register_service_tools(mcp, config):
             await ctx.info(f"Getting services for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("services", hostname, params=params or None)
+                # An unknown device ID gets an empty list, as if it had none.
+                result = await device_error_if_empty(
+                    client,
+                    hostname,
+                    _flatten_services(
+                        await client.get("services", hostname, params=params or None)
+                    ),
+                    "services",
+                )
             return paginate_list(result, limit, offset, key="services")
 
         except Exception as e:
@@ -172,7 +201,7 @@ def register_service_tools(mcp, config):
             Field(
                 description="""Service monitoring payload:
 - type (required): Service check type (e.g., "http", "https", "dns", "ping", "smtp", "ssh", "tcp", "icmp")
-- ip (optional): Service IP address (defaults to device IP)
+- ip (optional): Service IP address or hostname to check (defaults to the device's poller target: its overwrite IP if set, else its hostname)
 - desc (optional): Service description
 - param (optional): Check parameters/arguments (service-specific)
 - ignore (optional): Exclude from alerts (0/1)
@@ -196,6 +225,17 @@ Example: {"type": "http", "desc": "Web Server", "param": "-p 8080 -u /health"}""
             await ctx.info(f"Adding service for {hostname}...")
 
             async with LibreNMSClient(config) as client:
+                # add_service_for_host does not check the device exists, so an
+                # unknown one could get an orphaned service; confirm it first.
+                _, error = await lookup_device(client, hostname)
+                if error:
+                    return error
+                if not payload.get("ip"):
+                    # LibreNMS answers a service without "ip" with a 500, but
+                    # for an empty one Services::addService stores the device's
+                    # poller target (its overwrite_ip, else its hostname), as
+                    # the web UI does.
+                    payload = {**payload, "ip": ""}
                 return await client.post("services", hostname, data=payload)
 
         except Exception as e:

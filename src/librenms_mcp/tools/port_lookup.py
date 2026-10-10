@@ -10,6 +10,7 @@ from fastmcp.exceptions import ToolError
 
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.librenms_client import LibreNMSHTTPError
+from librenms_mcp.utils import unique_match
 
 T = TypeVar("T")
 
@@ -63,22 +64,12 @@ async def resolve_port_id(client: LibreNMSClient, hostname: str, ifname: str) ->
         raise ToolError(
             f"Could not list ports on {hostname}: {result.get('message', result)}"
         )
-    ports = result.get("ports") or []
-    # Exact name as given, then case-insensitive. Each stage must match
-    # exactly one port: stacked switches can report the same ifName twice,
-    # and a silent pick would show another port's data.
-    stages: list[tuple[Callable[[str], str], str]] = [
-        (str, ifname),
-        (str.casefold, ifname.casefold()),
-    ]
-    for normalize, wanted in stages:
-        matches = [
-            port for port in ports if normalize(str(port.get("ifName", ""))) == wanted
-        ]
-        if len(matches) == 1:
-            return int(matches[0]["port_id"])
-        if matches:
-            raise ToolError(_ambiguous(ifname, hostname, matches))
+    ports = [port for port in result.get("ports") or [] if isinstance(port, dict)]
+    port, ambiguous = unique_match(ports, "ifName", ifname)
+    if port is not None:
+        return int(port["port_id"])
+    if ambiguous:
+        raise ToolError(_ambiguous(ifname, hostname, ambiguous))
     raise ToolError(f"No interface named '{ifname}' found on {hostname}.")
 
 

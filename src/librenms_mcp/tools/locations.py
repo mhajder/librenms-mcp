@@ -8,6 +8,8 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.name_refs import LOCATION
+from librenms_mcp.tools.name_refs import route_ref
 from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
 
@@ -115,14 +117,14 @@ def register_location_tools(mcp, config):
         },
     )
     async def location_delete(
-        location: Annotated[str, Field(description="Location identifier")],
+        location: Annotated[str, Field(description="Location ID or name")],
         ctx: Context,
     ) -> dict:
         """
-        Delete a location from LibreNMS by identifier.
+        Delete a location from LibreNMS by ID or name.
 
         Args:
-            location (str): Location identifier.
+            location (str): Location ID or name.
 
         Returns:
             dict: The JSON response from the API.
@@ -131,7 +133,10 @@ def register_location_tools(mcp, config):
             await ctx.info(f"Deleting location {location}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.delete("locations", location)
+                # del_location accepts an ID too (ctype_digit -> where id), so a
+                # name with '/' is translated like on the other location routes.
+                ref = await route_ref(client, LOCATION, location)
+                return await client.delete("locations", ref)
 
         except Exception as e:
             await ctx.error(f"Error deleting location {location}: {e!s}")
@@ -146,7 +151,7 @@ def register_location_tools(mcp, config):
         },
     )
     async def location_edit(
-        location: Annotated[str, Field(description="Location identifier or name")],
+        location: Annotated[str, Field(description="Location ID or name")],
         payload: Annotated[
             dict,
             Field(
@@ -171,7 +176,12 @@ def register_location_tools(mcp, config):
             await ctx.info(f"Editing location {location}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.patch("locations", location, data=payload)
+                ref = await route_ref(client, LOCATION, location)
+                return await client.patch(
+                    "locations",
+                    ref,
+                    data=payload,
+                )
 
         except Exception as e:
             await ctx.error(f"Error editing location {location}: {e!s}")
@@ -186,7 +196,7 @@ def register_location_tools(mcp, config):
         },
     )
     async def location_get(
-        location: Annotated[str, Field(description="Location identifier or name")],
+        location: Annotated[str, Field(description="Location ID or name")],
         ctx: Context,
     ) -> dict:
         """
@@ -202,7 +212,8 @@ def register_location_tools(mcp, config):
             await ctx.info(f"Getting location {location}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("location", location)
+                ref = await route_ref(client, LOCATION, location)
+                return await client.get("location", ref)
 
         except Exception as e:
             await ctx.error(f"Error getting location {location}: {e!s}")
@@ -221,7 +232,7 @@ def register_location_tools(mcp, config):
         },
     )
     async def location_set_maintenance(
-        location: Annotated[str, Field(description="Location identifier or name")],
+        location: Annotated[str, Field(description="Location ID or name")],
         payload: Annotated[
             dict,
             Field(
@@ -248,8 +259,12 @@ def register_location_tools(mcp, config):
             await ctx.info(f"Setting maintenance for location {location}...")
 
             async with LibreNMSClient(config) as client:
+                ref = await route_ref(client, LOCATION, location)
                 return await client.post(
-                    "locations", location, "maintenance", data=payload
+                    "locations",
+                    ref,
+                    "maintenance",
+                    data=payload,
                 )
 
         except Exception as e:

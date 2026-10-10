@@ -10,6 +10,10 @@ from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.librenms_client import LibreNMSHTTPError
+from librenms_mcp.tools.device_check import device_error_if_empty
+from librenms_mcp.tools.device_check import lookup_device
+from librenms_mcp.tools.name_refs import DEVICE_GROUP
+from librenms_mcp.tools.name_refs import route_ref
 from librenms_mcp.tools.port_lookup import with_port_id_fallback
 from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
@@ -310,8 +314,14 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info(f"Listing ports for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get(
-                    "devices", hostname, "ports", params=params or None
+                # An unknown device gets "No ports found", as if it had none.
+                result = await device_error_if_empty(
+                    client,
+                    hostname,
+                    await client.get(
+                        "devices", hostname, "ports", params=params or None
+                    ),
+                    "ports",
                 )
             return paginate_list(result, limit, offset, key="ports")
 
@@ -366,7 +376,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
                     return result
 
                 try:
-                    return await with_port_id_fallback(
+                    result = await with_port_id_fallback(
                         client, hostname, ifname, by_name, by_id, ctx.info
                     )
                 except LibreNMSHTTPError as e:
@@ -374,6 +384,24 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
                     if e.body is not None:
                         return e.body
                     raise
+
+                # LibreNMS answers a port (or device) it cannot find with
+                # status "ok" and an empty port record, which would read as a
+                # real port. Only then is the device looked up, to say which
+                # of the two is missing.
+                if not isinstance(result, dict):
+                    return result
+                port = result.get("port")
+                if result.get("status") == "ok" and not (
+                    isinstance(port, dict) and port.get("port_id") is not None
+                ):
+                    _, error = await lookup_device(client, hostname)
+                    if error:
+                        return error
+                    return error_body(
+                        f"No port named {ifname!r} on device {hostname!r}"
+                    )
+                return result
 
         except Exception as e:
             await ctx.error(f"Error getting port {ifname} on {hostname}: {e!s}")
@@ -403,7 +431,10 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info(f"Getting availability for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("devices", hostname, "availability")
+                result = await client.get("devices", hostname, "availability")
+                return await device_error_if_empty(
+                    client, hostname, result, "availability"
+                )
 
         except Exception as e:
             await ctx.error(f"Error availability {hostname}: {e!s}")
@@ -452,7 +483,12 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
             await ctx.info(f"Getting outages for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                result = await client.get("devices", hostname, "outages")
+                result = await device_error_if_empty(
+                    client,
+                    hostname,
+                    await client.get("devices", hostname, "outages"),
+                    "outages",
+                )
             return paginate_list(result, limit, offset, key="outages")
 
         except Exception as e:
@@ -607,7 +643,7 @@ Example dynamic group:
         },
     )
     async def devicegroup_update(
-        name: Annotated[str, Field(description="Device group name")],
+        name: Annotated[str, Field(description="Device group name or ID")],
         payload: Annotated[
             dict,
             Field(
@@ -635,7 +671,12 @@ Example dynamic group:
             await ctx.info(f"Updating device group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.patch("devicegroups", name, data=payload)
+                ref = await route_ref(client, DEVICE_GROUP, name)
+                return await client.patch(
+                    "devicegroups",
+                    ref,
+                    data=payload,
+                )
 
         except Exception as e:
             await ctx.error(f"Error updating device group {name}: {e!s}")
@@ -650,7 +691,7 @@ Example dynamic group:
         },
     )
     async def devicegroup_delete(
-        name: Annotated[str, Field(description="Device group name to delete")],
+        name: Annotated[str, Field(description="Device group name or ID to delete")],
         ctx: Context,
     ) -> dict:
         """
@@ -666,7 +707,8 @@ Example dynamic group:
             await ctx.info(f"Deleting device group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.delete("devicegroups", name)
+                ref = await route_ref(client, DEVICE_GROUP, name)
+                return await client.delete("devicegroups", ref)
 
         except Exception as e:
             await ctx.error(f"Error deleting device group {name}: {e!s}")
@@ -682,7 +724,7 @@ Example dynamic group:
     )
     async def devicegroup_devices(
         ctx: Context,
-        name: Annotated[str, Field(description="Device group name")],
+        name: Annotated[str, Field(description="Device group name or ID")],
         full: Annotated[
             bool | None,
             Field(
@@ -727,9 +769,10 @@ Example dynamic group:
             await ctx.info(f"Listing devices in group {name}...")
 
             async with LibreNMSClient(config) as client:
+                ref = await route_ref(client, DEVICE_GROUP, name)
                 result = await client.get(
                     "devicegroups",
-                    name,
+                    ref,
                     params=params or None,
                 )
             return paginate_list(result, limit, offset)
@@ -747,7 +790,7 @@ Example dynamic group:
         },
     )
     async def devicegroup_set_maintenance(
-        name: Annotated[str, Field(description="Device group name")],
+        name: Annotated[str, Field(description="Device group name or ID")],
         payload: Annotated[
             dict,
             Field(
@@ -774,8 +817,12 @@ Example dynamic group:
             await ctx.info(f"Setting maintenance for group {name}...")
 
             async with LibreNMSClient(config) as client:
+                ref = await route_ref(client, DEVICE_GROUP, name)
                 return await client.post(
-                    "devicegroups", name, "maintenance", data=payload
+                    "devicegroups",
+                    ref,
+                    "maintenance",
+                    data=payload,
                 )
 
         except Exception as e:
@@ -791,7 +838,7 @@ Example dynamic group:
         },
     )
     async def devicegroup_add_devices(
-        name: Annotated[str, Field(description="Device group name")],
+        name: Annotated[str, Field(description="Device group name or ID")],
         payload: Annotated[
             dict,
             Field(
@@ -814,7 +861,13 @@ Example dynamic group:
             await ctx.info(f"Adding devices to group {name}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.post("devicegroups", name, "devices", data=payload)
+                ref = await route_ref(client, DEVICE_GROUP, name)
+                return await client.post(
+                    "devicegroups",
+                    ref,
+                    "devices",
+                    data=payload,
+                )
 
         except Exception as e:
             await ctx.error(f"Error adding devices to group {name}: {e!s}")
@@ -829,7 +882,7 @@ Example dynamic group:
         },
     )
     async def devicegroup_remove_devices(
-        name: Annotated[str, Field(description="Device group name")],
+        name: Annotated[str, Field(description="Device group name or ID")],
         payload: Annotated[
             dict,
             Field(
@@ -852,8 +905,12 @@ Example dynamic group:
             await ctx.info(f"Removing devices from group {name}...")
 
             async with LibreNMSClient(config) as client:
+                ref = await route_ref(client, DEVICE_GROUP, name)
                 return await client.delete(
-                    "devicegroups", name, "devices", data=payload
+                    "devicegroups",
+                    ref,
+                    "devices",
+                    data=payload,
                 )
 
         except Exception as e:
@@ -1052,6 +1109,9 @@ Example dynamic group:
             await ctx.info(f"Getting links for {hostname}...")
 
             async with LibreNMSClient(config) as client:
+                _, error = await lookup_device(client, hostname)
+                if error:
+                    return error
                 result = await client.get("devices", hostname, "links")
             return paginate_list(result, limit, offset)
 

@@ -11,8 +11,25 @@ from fastmcp.utilities.types import Image
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.device_check import device_error_if_empty
 from librenms_mcp.tools.port_lookup import with_port_id_fallback
 from librenms_mcp.utils import error_body
+
+# devices/{hostname}/graphs lists these two for every device ID, even one that
+# does not exist, so a list holding nothing else proves nothing. Releases
+# before 25.1 name the ping graph device_ping_perf instead of device_icmp_perf.
+ALWAYS_LISTED_GRAPHS = frozenset(
+    {"device_poller_perf", "device_icmp_perf", "device_ping_perf"}
+)
+
+
+def _has_device_specific_graph(graphs: Any) -> bool:
+    """Whether a graph list names a graph only an existing device has."""
+    return isinstance(graphs, list) and any(
+        not isinstance(graph, dict) or graph.get("name") not in ALWAYS_LISTED_GRAPHS
+        for graph in graphs
+    )
+
 
 # Graph endpoints return an image, so a failure cannot be reported as a dict the
 # way the JSON tools do. They raise ToolError instead.
@@ -128,7 +145,13 @@ def register_graph_tools(mcp, config):
             await ctx.info(f"Listing available graphs for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                return await client.get("devices", hostname, "graphs")
+                return await device_error_if_empty(
+                    client,
+                    hostname,
+                    await client.get("devices", hostname, "graphs"),
+                    "graphs",
+                    _has_device_specific_graph,
+                )
 
         except Exception as e:
             await ctx.error(f"Error listing graphs for {hostname}: {e!s}")

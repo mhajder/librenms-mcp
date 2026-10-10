@@ -12,7 +12,9 @@ from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.tools.graphs import _to_image
+from librenms_mcp.utils import blank_to_none
 from librenms_mcp.utils import error_body
+from librenms_mcp.utils import not_found_if_empty
 from librenms_mcp.utils import paginate_list
 
 
@@ -125,8 +127,25 @@ def register_bill_tools(mcp, config):
 
         try:
             await ctx.info(f"Getting bill {bill_id}...")
+            missing = f"Bill {bill_id} does not exist"
             async with LibreNMSClient(config) as client:
-                return await client.get("bills", bill_id, params=params)
+                result = await client.get("bills", bill_id, params=params)
+                checked = not_found_if_empty(result, "bills", missing)
+                if checked is not result and blank_to_none(period) == "previous":
+                    # With period=previous (the only value LibreNMS acts on; it
+                    # trims query input), LibreNMS joins the bill's history, so
+                    # an existing bill without data for that period comes back
+                    # empty too; only the plain lookup tells "no such bill" apart.
+                    plain = await client.get("bills", bill_id)
+                    checked = not_found_if_empty(plain, "bills", missing)
+                    if (
+                        isinstance(plain, dict)
+                        and plain.get("status") == "ok"
+                        and checked is plain
+                    ):
+                        # The bill exists; it has no data for that period.
+                        return result
+            return checked
 
         except Exception as e:
             await ctx.error(f"Error getting bill {bill_id}: {e!s}")
