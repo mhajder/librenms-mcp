@@ -1,5 +1,6 @@
 import pytest
 
+from librenms_mcp.utils import blank_to_none
 from librenms_mcp.utils import env_float
 from librenms_mcp.utils import env_int
 from librenms_mcp.utils import http_host_from_env
@@ -222,3 +223,11 @@ def test_http_host_from_env(monkeypatch, raw, expected):
     else:
         monkeypatch.setenv("MCP_HTTP_HOST", raw)
     assert http_host_from_env() == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [(None, None), ("", None), ("   ", None), ("sw1", "sw1"), (" sw1 ", "sw1")],
+)
+def test_blank_to_none_trims_like_librenms(value, expected):
+    assert blank_to_none(value) == expected

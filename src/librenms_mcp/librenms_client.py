@@ -7,7 +7,9 @@ import httpx2
 
 from librenms_mcp.models import LibreNMSConfig
 from librenms_mcp.models import TransportConfig
+from librenms_mcp.utils import HTTP_TRANSPORTS
 from librenms_mcp.utils import env_int
+from librenms_mcp.utils import env_str
 from librenms_mcp.utils import http_host_from_env
 from librenms_mcp.utils import normalize_transport
 from librenms_mcp.utils import parse_bool
@@ -334,6 +336,11 @@ class LibreNMSClient:
         return await self.request("PATCH", *segments, data=data)
 
 
+def _env_setting(name: str, field: str) -> int:
+    """Read an integer setting, defaulting to LibreNMSConfig's own default."""
+    return env_int(name, LibreNMSConfig.model_fields[field].default)
+
+
 def get_librenms_config_from_env() -> LibreNMSConfig:
     """Get LibreNMS configuration from environment variables."""
     # Parse disabled tags from comma-separated string
@@ -346,47 +353,79 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
         }
 
     # Get required config values
-    librenms_url = os.getenv("LIBRENMS_URL")
+    # Whitespace-only counts as missing: it would otherwise start the server
+    # and fail every call with a confusing connection or 401 error.
+    librenms_url = env_str("LIBRENMS_URL")
     if not librenms_url:
         raise ValueError("LIBRENMS_URL environment variable is required")
 
-    token = os.getenv("LIBRENMS_TOKEN")
+    token = env_str("LIBRENMS_TOKEN")
     if not token:
         raise ValueError("LIBRENMS_TOKEN environment variable is required")
 
-    raw_tool_search_strategy = os.getenv("TOOL_SEARCH_STRATEGY", "bm25").lower()
+    # Unknown values used to fall back to bm25 silently, hiding a typo such as
+    # "regx" or a stray space; trim, then refuse anything else - but only when
+    # tool search is on, so a leftover value cannot stop a server that never
+    # uses it.
+    tool_search_enabled = parse_bool(os.getenv("TOOL_SEARCH_ENABLED"), default=False)
+    raw_tool_search_strategy = (env_str("TOOL_SEARCH_STRATEGY") or "bm25").lower()
+    if tool_search_enabled and raw_tool_search_strategy not in ("bm25", "regex"):
+        raise ValueError(
+            "TOOL_SEARCH_STRATEGY must be 'bm25' or 'regex', "
+            f"got {os.getenv('TOOL_SEARCH_STRATEGY')!r}"
+        )
     tool_search_strategy: Literal["bm25", "regex"] = (
         "regex" if raw_tool_search_strategy == "regex" else "bm25"
     )
+
+    rate_limit_enabled = parse_bool(os.getenv("RATE_LIMIT_ENABLED"), default=False)
+
+    # Numeric settings of a disabled feature are not read at all: a leftover
+    # value must not stop a server that never uses it, and LibreNMSConfig's
+    # own defaults then apply. Read ones fall back to those same defaults.
+    numbers: dict[str, int] = {}
+    if rate_limit_enabled:
+        numbers["rate_limit_max_requests"] = _env_setting(
+            "RATE_LIMIT_MAX_REQUESTS", "rate_limit_max_requests"
+        )
+        numbers["rate_limit_window_minutes"] = _env_setting(
+            "RATE_LIMIT_WINDOW_MINUTES", "rate_limit_window_minutes"
+        )
+    if tool_search_enabled:
+        numbers["tool_search_max_results"] = _env_setting(
+            "TOOL_SEARCH_MAX_RESULTS", "tool_search_max_results"
+        )
 
     return LibreNMSConfig(
         librenms_url=librenms_url,
         token=token,
         verify_ssl=parse_bool(os.getenv("LIBRENMS_VERIFY_SSL"), default=True),
-        timeout=env_int("LIBRENMS_TIMEOUT", 30),
+        timeout=_env_setting("LIBRENMS_TIMEOUT", "timeout"),
         read_only_mode=parse_bool(os.getenv("READ_ONLY_MODE"), default=False),
         disabled_tags=disabled_tags,
-        rate_limit_enabled=parse_bool(os.getenv("RATE_LIMIT_ENABLED"), default=False),
-        rate_limit_max_requests=env_int("RATE_LIMIT_MAX_REQUESTS", 60),
-        rate_limit_window_minutes=env_int("RATE_LIMIT_WINDOW_MINUTES", 1),
-        tool_search_enabled=parse_bool(os.getenv("TOOL_SEARCH_ENABLED"), default=False),
+        rate_limit_enabled=rate_limit_enabled,
+        tool_search_enabled=tool_search_enabled,
         tool_search_strategy=tool_search_strategy,
-        tool_search_max_results=env_int("TOOL_SEARCH_MAX_RESULTS", 5),
+        **numbers,
     )
 
 
 def get_transport_config_from_env() -> TransportConfig:
     """Get transport configuration from environment variables."""
-    http_bearer_token = os.getenv("MCP_HTTP_BEARER_TOKEN")
-    if http_bearer_token is not None:
-        http_bearer_token = http_bearer_token.strip() or None
+    http_bearer_token = env_str("MCP_HTTP_BEARER_TOKEN")
 
     # An unknown value is passed through for main() to reject. Raising here
     # would break `fastmcp run`, which imports the server module but picks the
     # transport itself and never reads MCP_TRANSPORT.
+    transport_type = normalize_transport(os.getenv("MCP_TRANSPORT"))
+    # Likewise, the port is only parsed when an HTTP transport will bind it: a
+    # leftover non-numeric MCP_HTTP_PORT must not stop stdio or `fastmcp run`.
+    http_port = (
+        env_int("MCP_HTTP_PORT", 8000) if transport_type in HTTP_TRANSPORTS else 8000
+    )
     return TransportConfig(
-        transport_type=normalize_transport(os.getenv("MCP_TRANSPORT")),
+        transport_type=transport_type,
         http_host=http_host_from_env(),
-        http_port=env_int("MCP_HTTP_PORT", 8000),
+        http_port=http_port,
         http_bearer_token=http_bearer_token,
     )
