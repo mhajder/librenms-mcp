@@ -49,7 +49,8 @@ from librenms_mcp.tools.port_lookup import resolve_port_id as _resolve_port_id
     ],
 )
 def test_graph_params_omits_unset_values(kwargs, expected):
-    assert _graph_params(**kwargs) == expected
+    # PNG is always requested, so MCP clients that cannot show SVG still can.
+    assert _graph_params(**kwargs) == {"graph_type": "png", **expected}
 
 
 @pytest.mark.parametrize(

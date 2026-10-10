@@ -72,7 +72,7 @@ async def test_bill_graph_returns_an_image(bill_tools, monkeypatch):
     image = await bill_tools.tools["bill_graph"](4, "bits", _FakeContext())
 
     assert isinstance(image, Image)
-    assert fake.calls == [("GET", "bills/4/graphs/bits", None)]
+    assert fake.calls == [("GET", "bills/4/graphs/bits", {"graph_type": "png"})]
 
 
 @pytest.mark.asyncio
@@ -83,4 +83,6 @@ async def test_bill_history_graph_returns_an_image(bill_tools, monkeypatch):
     image = await bill_tools.tools["bill_history_graph"](4, 9, "day", _FakeContext())
 
     assert isinstance(image, Image)
-    assert fake.calls == [("GET", "bills/4/history/9/graphs/day", None)]
+    assert fake.calls == [
+        ("GET", "bills/4/history/9/graphs/day", {"graph_type": "png"})
+    ]

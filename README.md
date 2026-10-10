@@ -267,8 +267,10 @@ MCP_TRANSPORT=stdio
 
 ### Graph Tools
 
-Graphs are returned as MCP images. LibreNMS serves SVG on current releases and
-PNG on older ones; the MIME type is taken from the response.
+Graphs are returned as MCP images. The tools ask LibreNMS for PNG, which MCP
+clients such as Claude can display (SVG, LibreNMS's default `webui.graph_type`,
+often is not). A LibreNMS release that ignores the request renders in its
+`webui.graph_type` format instead; the MIME type is taken from the response.
 
 - `device_graphs_list`: List the graph types available for a device
 - `device_graph`: Render a device-level graph (e.g. `device_icmp_perf`)

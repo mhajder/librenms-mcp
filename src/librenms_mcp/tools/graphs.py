@@ -62,6 +62,20 @@ LegendField = Annotated[
 ]
 
 
+# Image format requested from LibreNMS graph endpoints (see image_params).
+GRAPH_IMAGE_FORMAT = "png"
+
+
+def image_params() -> dict[str, Any]:
+    """Query parameters every graph request carries: ask for PNG.
+
+    LibreNMS otherwise renders in its webui.graph_type format (SVG by
+    default), which many MCP clients, Claude included, cannot display.
+    Releases that ignore the parameter fall back to that setting.
+    """
+    return {"graph_type": GRAPH_IMAGE_FORMAT}
+
+
 def _graph_params(
     from_: str | None,
     to: str | None,
@@ -69,8 +83,8 @@ def _graph_params(
     height: int | None,
     legend: bool | None,
 ) -> dict[str, Any]:
-    """Build the query parameters shared by every graph endpoint."""
-    params: dict[str, Any] = {}
+    """Build the query parameters shared by every graph endpoint (see image_params)."""
+    params: dict[str, Any] = image_params()
     if from_ is not None:
         params["from"] = from_
     if to is not None:
@@ -100,8 +114,9 @@ def _port_graph_type(graph_type: str) -> str:
 def _to_image(data: bytes, content_type: str) -> Image:
     """Wrap a graph response body in an MCP image.
 
-    LibreNMS serves graphs as SVG on current releases and as PNG on older ones,
-    so the MIME type is taken from the response rather than assumed.
+    PNG is requested, but a LibreNMS that ignores the request renders in its
+    webui.graph_type format, so the MIME type is taken from the response
+    rather than assumed.
     """
     if not content_type.startswith("image/"):
         raise ToolError(

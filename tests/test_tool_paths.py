@@ -882,6 +882,33 @@ async def test_inventory_rejects_unknown_devices(server):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "args"),
+    [
+        ("bill_graph", {"bill_id": 1, "graph_type": "day"}),
+        ("bill_graph_data", {"bill_id": 1, "graph_type": "hour"}),
+        (
+            "bill_history_graph",
+            {"bill_id": 1, "history_id": 2, "graph_type": "monthly"},
+        ),
+        (
+            "bill_history_graph_data",
+            {"bill_id": 1, "history_id": 2, "graph_type": "monthly"},
+        ),
+    ],
+)
+async def test_bill_graph_types_are_limited_to_what_librenms_supports(
+    server, tool, args
+):
+    """Current periods take bits/monthly, history bits/day/hour; others fail."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        with pytest.raises(ToolError, match="graph_type"):
+            await client.call_tool(tool, args)
+    assert requests == []
+
+
+@pytest.mark.asyncio
 async def test_device_ports_get_reports_a_missing_port(server):
     """LibreNMS answers a missing port with status ok and an empty record."""
     mcp, requests, set_handler = server
