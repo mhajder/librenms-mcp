@@ -12,6 +12,7 @@ from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.tools.port_lookup import with_port_id_fallback
+from librenms_mcp.utils import error_body
 
 # Graph endpoints return an image, so a failure cannot be reported as a dict the
 # way the JSON tools do. They raise ToolError instead.
@@ -131,7 +132,7 @@ def register_graph_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing graphs for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "graphs", "read-only"},

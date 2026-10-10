@@ -245,3 +245,13 @@ def paginate_list(
     paginated_result["offset"] = offset
 
     return paginated_result
+
+
+def error_body(message: str) -> dict[str, Any]:
+    """
+    Build an error in LibreNMS's own shape, ``{"status": "error", "message": ...}``.
+
+    Tools return LibreNMS's error bodies as they are, so errors detected here
+    use the same shape and callers can check one field for both.
+    """
+    return {"status": "error", "message": message}

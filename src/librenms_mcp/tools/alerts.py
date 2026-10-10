@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
 
 
@@ -105,7 +106,7 @@ def register_alert_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error retrieving alerts: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "alert", "read-only", "global-read"},
@@ -139,7 +140,7 @@ def register_alert_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error retrieving alert {alert_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "alert", "admin"},
@@ -192,7 +193,7 @@ def register_alert_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error acknowledging alert {alert_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "alert", "admin"},
@@ -223,7 +224,7 @@ def register_alert_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error unmuting alert {alert_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     ##########################
     # Alert Rules
@@ -271,7 +272,7 @@ def register_alert_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing rules: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "alert-rules", "read-only", "global-read"},
@@ -302,7 +303,7 @@ def register_alert_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error getting rule {rule_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "alert-rules", "admin"},
@@ -352,7 +353,7 @@ Example:
 
         except Exception as e:
             await ctx.error(f"Error adding rule: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "alert-rules", "admin"},
@@ -400,7 +401,7 @@ Example:
 
         except Exception as e:
             await ctx.error(f"Error editing rule: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "alert-rules", "admin"},
@@ -431,7 +432,7 @@ Example:
 
         except Exception as e:
             await ctx.error(f"Error deleting rule {rule_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     ##########################
     # Alert Templates
@@ -479,7 +480,7 @@ Example:
 
         except Exception as e:
             await ctx.error(f"Error listing alert templates: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "alert-templates", "read-only"},
@@ -510,7 +511,7 @@ Example:
 
         except Exception as e:
             await ctx.error(f"Error getting alert template {template_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "alert-templates"},
@@ -557,7 +558,7 @@ Example:
 
         except Exception as e:
             await ctx.error(f"Error creating alert template: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "alert-templates"},
@@ -603,4 +604,4 @@ the ones being changed."""
 
         except Exception as e:
             await ctx.error(f"Error editing alert template: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))

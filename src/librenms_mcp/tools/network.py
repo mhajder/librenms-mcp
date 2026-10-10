@@ -10,6 +10,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import error_body
 from librenms_mcp.utils import optional_segment
 from librenms_mcp.utils import paginate_list
 
@@ -86,9 +87,9 @@ def register_network_tools(mcp, config):
             if device and not is_all:
                 # LibreNMS only filters by device for "all"; silently dropping
                 # it would pass off every device's entries as this one's.
-                return {
-                    "error": 'The device parameter can only be used with query "all"'
-                }
+                return error_body(
+                    'The device parameter can only be used with query "all"'
+                )
             segments = ["resources", "ip", "arp", "all" if is_all else query]
             # One parse covers both checks: a bare address parses as a /32 or
             # /128 network, and MACs or "all" do not parse at all.
@@ -96,11 +97,11 @@ def register_network_tools(mcp, config):
                 network = ipaddress.ip_network(query, strict=False)
             except ValueError:
                 if "/" in query:
-                    return {"error": f"Invalid CIDR notation: {query!r}"}
+                    return error_body(f"Invalid CIDR notation: {query!r}")
                 network = None
             if network is not None:
                 if network.version != 4:
-                    return {"error": IPV6_ARP_ERROR}
+                    return error_body(IPV6_ARP_ERROR)
                 if "/" in query:
                     # LibreNMS routes CIDR as two segments (ip/arp/{query}/{cidr}),
                     # so the prefix length must stay a real path separator.
@@ -122,7 +123,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error ARP search {query}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     ##########################
     # Routing (subset)
@@ -231,7 +232,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing BGP sessions: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "routing", "read-only", "global-read"},
@@ -261,7 +262,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error BGP session {bgp_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "routing", "admin"},
@@ -299,7 +300,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error editing BGP {bgp_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "routing", "read-only", "global-read"},
@@ -343,7 +344,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing IP addresses: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     ##########################
     # Switching (subset)
@@ -391,7 +392,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing VLANs: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "switching", "read-only"},
@@ -435,7 +436,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing links: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     ##########################
     # FDB (Forwarding Database)
@@ -475,7 +476,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error looking up FDB for {mac}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     ##########################
     # OSPF
@@ -523,7 +524,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing OSPF: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "routing", "ospf", "read-only", "global-read"},
@@ -567,7 +568,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing OSPF ports: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     ##########################
     # VRF
@@ -615,7 +616,7 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing VRF: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "network", "nac", "read-only"},
@@ -670,4 +671,4 @@ def register_network_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing NAC sessions: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))

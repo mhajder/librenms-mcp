@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import error_body
 from librenms_mcp.utils import optional_segment
 
 # Parameters shared by the log tools.
@@ -150,7 +151,7 @@ def register_logs_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error eventlog {hostname or 'all devices'}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "logs", "read-only", "global-read"},
@@ -198,7 +199,7 @@ def register_logs_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error syslog {hostname or 'all devices'}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "logs", "read-only", "global-read"},
@@ -246,7 +247,7 @@ def register_logs_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error alertlog {hostname or 'all devices'}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "logs", "read-only", "global-read"},
@@ -294,7 +295,7 @@ def register_logs_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error authlog: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "logs", "admin"},
@@ -330,4 +331,4 @@ def register_logs_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error syslogsink: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))

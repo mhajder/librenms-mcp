@@ -8,6 +8,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
 
 
@@ -62,7 +63,7 @@ def register_port_security_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing port security configuration: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports", "port-security", "read-only"},
@@ -108,7 +109,7 @@ def register_port_security_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error getting port security for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "ports", "port-security", "read-only"},
@@ -139,4 +140,4 @@ def register_port_security_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error getting port security for port {port_id}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))

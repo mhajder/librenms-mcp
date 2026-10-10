@@ -8,6 +8,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.utils import error_body
 from librenms_mcp.utils import paginate_list
 
 
@@ -65,7 +66,7 @@ def register_health_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error getting health graphs for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "health", "read-only"},
@@ -120,7 +121,7 @@ def register_health_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error getting {type} health data for {hostname}: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "health", "read-only"},
@@ -160,7 +161,7 @@ def register_health_tools(mcp, config):
             await ctx.error(
                 f"Error getting sensor {sensor_id} ({type}) for {hostname}: {e!s}"
             )
-            return {"error": str(e)}
+            return error_body(str(e))
 
     @mcp.tool(
         tags={"librenms", "sensors", "read-only"},
@@ -208,4 +209,4 @@ def register_health_tools(mcp, config):
 
         except Exception as e:
             await ctx.error(f"Error listing sensors: {e!s}")
-            return {"error": str(e)}
+            return error_body(str(e))

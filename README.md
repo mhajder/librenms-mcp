@@ -378,6 +378,19 @@ To prevent overloading LLM contexts when querying large LibreNMS production inst
   - `count`: The number of items returned in the current page.
   - `total`: The total number of items available (for log tools, this is provided if returned by the LibreNMS API).
 
+## Error Responses
+
+Every tool that returns JSON reports a failure in LibreNMS's own error shape,
+whether the error came from LibreNMS, from a check in this server, or from an
+exception such as a timeout:
+
+```json
+{"status": "error", "message": "Device typo does not exist"}
+```
+
+Check `status == "error"`. Up to 1.11.3, exceptions were returned as
+`{"error": "..."}`; clients that looked for an `error` key need updating.
+
 ## Security & Safety Features
 
 ### Read-Only Mode
