@@ -449,6 +449,27 @@ def test_unknown_tool_search_strategy_stops_startup(monkeypatch):
 
 
 @pytest.mark.parametrize(
+    "name",
+    [
+        "READ_ONLY_MODE",
+        "LIBRENMS_VERIFY_SSL",
+        "RATE_LIMIT_ENABLED",
+        "TOOL_SEARCH_ENABLED",
+    ],
+)
+def test_unknown_bool_setting_stops_startup(monkeypatch, name):
+    """A typo must not turn read-only mode or TLS verification off."""
+    monkeypatch.setenv("LIBRENMS_URL", "https://nms.invalid")
+    monkeypatch.setenv("LIBRENMS_TOKEN", "t")
+    monkeypatch.setenv(name, "enabled")
+    with pytest.raises(
+        ValueError,
+        match=f"{name} must be one of true/false, 1/0, yes/no, on/off, got 'enabled'",
+    ):
+        get_librenms_config_from_env()
+
+
+@pytest.mark.parametrize(
     ("enable", "name"),
     [
         ("RATE_LIMIT_ENABLED", "RATE_LIMIT_MAX_REQUESTS"),

@@ -5,9 +5,9 @@ Optional Sentry integration for error tracking and monitoring.
 import logging
 import os
 
+from librenms_mcp.utils import env_bool
 from librenms_mcp.utils import env_float
 from librenms_mcp.utils import env_str
-from librenms_mcp.utils import parse_bool
 
 logger = logging.getLogger(__name__)
 
@@ -45,9 +45,7 @@ def init_sentry() -> bool:
         traces_sample_rate = env_float("SENTRY_TRACES_SAMPLE_RATE", 1.0)
         # Off by default: with PII on, MCPIntegration attaches tool inputs and
         # outputs to events, and those include device configs and SNMP secrets.
-        send_default_pii = parse_bool(
-            os.getenv("SENTRY_SEND_DEFAULT_PII"), default=False
-        )
+        send_default_pii = env_bool("SENTRY_SEND_DEFAULT_PII", default=False)
         environment = env_str("SENTRY_ENVIRONMENT")
         release = env_str("SENTRY_RELEASE")
         profile_session_sample_rate = env_float(
@@ -58,7 +56,7 @@ def init_sentry() -> bool:
         profile_lifecycle: str = (
             "manual" if profile_lifecycle_str == "manual" else "trace"
         )
-        enable_logs = parse_bool(os.getenv("SENTRY_ENABLE_LOGS"), default=True)
+        enable_logs = env_bool("SENTRY_ENABLE_LOGS", default=True)
 
         # Get package version for default release
         if not release:

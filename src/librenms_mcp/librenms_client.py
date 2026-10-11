@@ -8,11 +8,11 @@ import httpx2
 from librenms_mcp.models import LibreNMSConfig
 from librenms_mcp.models import TransportConfig
 from librenms_mcp.utils import HTTP_TRANSPORTS
+from librenms_mcp.utils import env_bool
 from librenms_mcp.utils import env_int
 from librenms_mcp.utils import env_str
 from librenms_mcp.utils import http_host_from_env
 from librenms_mcp.utils import normalize_transport
-from librenms_mcp.utils import parse_bool
 from librenms_mcp.utils import path_segment
 
 logger = logging.getLogger(__name__)
@@ -367,7 +367,7 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
     # "regx" or a stray space; trim, then refuse anything else - but only when
     # tool search is on, so a leftover value cannot stop a server that never
     # uses it.
-    tool_search_enabled = parse_bool(os.getenv("TOOL_SEARCH_ENABLED"), default=False)
+    tool_search_enabled = env_bool("TOOL_SEARCH_ENABLED", default=False)
     raw_tool_search_strategy = (env_str("TOOL_SEARCH_STRATEGY") or "bm25").lower()
     if tool_search_enabled and raw_tool_search_strategy not in ("bm25", "regex"):
         raise ValueError(
@@ -378,7 +378,7 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
         "regex" if raw_tool_search_strategy == "regex" else "bm25"
     )
 
-    rate_limit_enabled = parse_bool(os.getenv("RATE_LIMIT_ENABLED"), default=False)
+    rate_limit_enabled = env_bool("RATE_LIMIT_ENABLED", default=False)
 
     # Numeric settings of a disabled feature are not read at all: a leftover
     # value must not stop a server that never uses it, and LibreNMSConfig's
@@ -399,9 +399,9 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
     return LibreNMSConfig(
         librenms_url=librenms_url,
         token=token,
-        verify_ssl=parse_bool(os.getenv("LIBRENMS_VERIFY_SSL"), default=True),
+        verify_ssl=env_bool("LIBRENMS_VERIFY_SSL", default=True),
         timeout=_env_setting("LIBRENMS_TIMEOUT", "timeout"),
-        read_only_mode=parse_bool(os.getenv("READ_ONLY_MODE"), default=False),
+        read_only_mode=env_bool("READ_ONLY_MODE", default=False),
         disabled_tags=disabled_tags,
         rate_limit_enabled=rate_limit_enabled,
         tool_search_enabled=tool_search_enabled,
