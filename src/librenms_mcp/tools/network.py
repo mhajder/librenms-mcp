@@ -41,7 +41,7 @@ def register_network_tools(mcp, config):
         query: Annotated[
             str,
             Field(
-                description='Search string for ARP entries. Supports an IPv4 address, MAC address, IPv4 CIDR notation (e.g. 10.0.0.0/24), or "all" (combine with the device parameter for all entries on one device)'
+                description='Search string for ARP entries. Supports an IPv4 address, MAC address, IPv4 CIDR notation (e.g. 10.0.0.0/24), or "all" (requires the device parameter; lists all entries on that device)'
             ),
         ],
         ctx: Context,
@@ -49,7 +49,7 @@ def register_network_tools(mcp, config):
             str | None,
             Field(
                 default=None,
-                description='Device hostname or ID to restrict results to. Only valid with query "all"; any other query returns an error.',
+                description='Device hostname or ID to list entries for. Required with query "all" and only valid with it; any other combination returns an error.',
             ),
         ] = None,
         limit: Annotated[
@@ -93,6 +93,10 @@ def register_network_tools(mcp, config):
                 return error_body(
                     'The device parameter can only be used with query "all"'
                 )
+            if is_all and not device:
+                # LibreNMS looks up entries for device_id NULL and answers with
+                # an empty list, which would read as "no ARP entries".
+                return error_body('Query "all" requires the device parameter')
             segments = ["resources", "ip", "arp", "all" if is_all else query]
             # One parse covers both checks: a bare address parses as a /32 or
             # /128 network, and MACs or "all" do not parse at all.

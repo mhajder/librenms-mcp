@@ -279,6 +279,20 @@ async def test_arp_search_rejects_device_without_all(server):
     assert requests == []
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("args", [{"query": "all"}, {"query": " ALL ", "device": "  "}])
+async def test_arp_search_rejects_all_without_device(server, args):
+    """LibreNMS answers "all" without a device with an empty list."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        result = await client.call_tool("arp_search", args)
+    assert result.data == {
+        "status": "error",
+        "message": 'Query "all" requires the device parameter',
+    }
+    assert requests == []
+
+
 def _fallback_handler(failure: httpx2.Response, ifname: str):
     """Fail the per-port graph, list one port, and render the port-group graph."""
 
@@ -684,11 +698,6 @@ async def test_oxidized_search_without_slash_is_sent(server):
     [
         ("logs_eventlog", {"hostname": "   "}, ["/api/v0/logs/eventlog"]),
         ("bgp_sessions", {"hostname": "   "}, ["/api/v0/bgp"]),
-        (
-            "arp_search",
-            {"query": "all", "device": "   "},
-            ["/api/v0/resources/ip/arp/all"],
-        ),
     ],
 )
 async def test_blank_filters_mean_no_filter(server, tool, args, expected):
