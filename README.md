@@ -141,6 +141,13 @@ uv run prek install
 
 ### Environment Variables
 
+Boolean settings accept `true`/`false`, `1`/`0`, `yes`/`no` and `on`/`off`
+(case-insensitive). Any other value stops the server at startup, so a typo
+cannot silently turn read-only mode or TLS verification off. The exception is
+`SENTRY_SEND_DEFAULT_PII` and `SENTRY_ENABLE_LOGS`: when `SENTRY_DSN` is set, an
+invalid value there logs an error and leaves Sentry off, and the server keeps
+running.
+
 ```env
 # LibreNMS Connection Details
 LIBRENMS_URL=https://domain.tld:8443

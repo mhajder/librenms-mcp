@@ -4,7 +4,12 @@ from typing import Any
 from typing import TypeVar
 from urllib.parse import quote
 
-TRUTHY_VALUES = ("1", "true", "yes", "on")
+TRUTHY_VALUES = ("true", "1", "yes", "on")
+FALSY_VALUES = ("false", "0", "no", "off")
+# "true/false, 1/0, yes/no, on/off", for error messages.
+BOOL_HELP = ", ".join(
+    f"{t}/{f}" for t, f in zip(TRUTHY_VALUES, FALSY_VALUES, strict=True)
+)
 
 # MCP_TRANSPORT spellings and the transport each selects. FastMCP calls the
 # streamable HTTP transport "streamable-http"; that is accepted as well as the
@@ -175,21 +180,46 @@ def parse_bool(val: str | None, default: bool = True) -> bool:
 
     A blank or whitespace-only value counts as unset and yields the default,
     so an env var declared without a value (``LIBRENMS_VERIFY_SSL=``) cannot
-    silently flip a setting off.
+    silently flip a setting off. Any other value must be a recognized spelling:
+    a typo such as ``READ_ONLY_MODE=enable`` raises instead of reading as False,
+    which would expose the write tools or disable TLS verification.
 
     Args:
         val: The value to convert.
         default (bool, optional): The default value to return if val is None or blank. Defaults to True.
 
     Returns:
-        bool: True if val represents a truthy value ("1", "true", "yes", "on"), case-insensitive; otherwise False.
+        bool: True for "true", "1", "yes", "on"; False for "false", "0", "no",
+        "off" (case-insensitive).
+
+    Raises:
+        ValueError: If val is set to anything else.
     """
     if val is None:
         return default
     normalized = str(val).strip().casefold()
     if not normalized:
         return default
-    return normalized in TRUTHY_VALUES
+    if normalized in TRUTHY_VALUES:
+        return True
+    if normalized in FALSY_VALUES:
+        return False
+    raise ValueError(f"Expected a boolean ({BOOL_HELP}), got {val!r}")
+
+
+def env_bool(name: str, default: bool) -> bool:
+    """
+    Read a boolean environment variable, treating a blank value as unset.
+
+    Raises:
+        ValueError: If the variable is set to an unrecognized value.
+    """
+    try:
+        return parse_bool(os.getenv(name), default)
+    except ValueError:
+        raise ValueError(
+            f"{name} must be one of {BOOL_HELP}, got {os.getenv(name)!r}"
+        ) from None
 
 
 def paginate_list(

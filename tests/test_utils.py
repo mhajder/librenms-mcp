@@ -28,7 +28,6 @@ from librenms_mcp.utils import unique_match
         ("false", True, False),
         ("no", True, False),
         ("off", True, False),
-        ("random", True, False),
         ("False", True, False),
         # Blank means "unset", so the default wins rather than False.
         ("", True, True),
@@ -39,6 +38,14 @@ from librenms_mcp.utils import unique_match
 )
 def test_parse_bool(val, default, expected):
     assert parse_bool(val, default) is expected
+
+
+@pytest.mark.parametrize("val", ["random", "enabled", "enable", "y", "2"])
+@pytest.mark.parametrize("default", [True, False])
+def test_parse_bool_rejects_unknown_values(val, default):
+    """A typo must not read as False: READ_ONLY_MODE=enable would expose writes."""
+    with pytest.raises(ValueError, match=f"got {val!r}"):
+        parse_bool(val, default)
 
 
 def test_paginate_list_direct_list():
