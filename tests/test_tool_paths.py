@@ -1869,3 +1869,84 @@ async def test_local_validation_errors_use_the_librenms_shape(server, tool, args
     assert result.data["message"]
     assert "error" not in result.data
     assert requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "key"),
+    [("alert_rule_edit", "rule_id"), ("alert_template_edit", "template_id")],
+)
+# Full-width 5 and superscript 2 are digits to str.isdigit(), and strip()
+# removes the no-break space and \x1c; PHP's is_numeric() rejects them. ' 5'
+# would pass is_numeric(), but IDs are not stripped, so it is refused too.
+@pytest.mark.parametrize(
+    "value",
+    [None, "", "abc", 0, -1, True, "\uff15", "\u00b2", "\u00a05", "\x1c5", " 5"],
+)
+async def test_alert_edit_requires_id(server, tool, key, value):
+    """Without an ID LibreNMS adds a new object instead of editing one."""
+    mcp, requests, _ = server
+    payload = {"name": "Device Down"}
+    if value is not None:
+        payload[key] = value
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, {"payload": payload})
+    assert result.data["status"] == "error"
+    assert f"payload must include {key}" in result.data["message"]
+    assert requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "key", "path"),
+    [
+        ("alert_rule_edit", "rule_id", "/api/v0/rules"),
+        ("alert_template_edit", "template_id", "/api/v0/alert_templates"),
+    ],
+)
+@pytest.mark.parametrize("value", [5, "5"])
+async def test_alert_edit_sends_payload_with_id(server, tool, key, path, value):
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool(tool, {"payload": {key: value, "name": "x"}})
+    assert [(r.method, r.url.path) for r in requests] == [("PUT", path)]
+    assert json.loads(requests[0].content)[key] == value
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "key", "edit_tool"),
+    [
+        ("alert_rule_add", "rule_id", "alert_rule_edit"),
+        ("alert_template_create", "template_id", "alert_template_edit"),
+    ],
+)
+@pytest.mark.parametrize("value", [7, "7", ""])
+async def test_alert_add_rejects_id(server, tool, key, edit_tool, value):
+    """With a numeric ID LibreNMS edits that object instead of adding one."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, {"payload": {key: value, "name": "x"}})
+    assert result.data["status"] == "error"
+    assert f"must not include {key}" in result.data["message"]
+    assert edit_tool in result.data["message"]
+    assert requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "key", "path"),
+    [
+        ("alert_rule_add", "rule_id", "/api/v0/rules"),
+        ("alert_template_create", "template_id", "/api/v0/alert_templates"),
+    ],
+)
+@pytest.mark.parametrize("with_null_id", [False, True])
+async def test_alert_add_sends_payload_without_id(
+    server, tool, key, path, with_null_id
+):
+    mcp, requests, _ = server
+    payload = {"name": "x"} | ({key: None} if with_null_id else {})
+    async with Client(mcp) as client:
+        await client.call_tool(tool, {"payload": payload})
+    assert [(r.method, r.url.path) for r in requests] == [("POST", path)]
