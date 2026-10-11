@@ -561,6 +561,32 @@ async def test_ports_search_names_fields_only_for_slashes(server, search, expect
 
 
 @pytest.mark.asyncio
+async def test_ports_search_field_rejects_zero(server):
+    """LibreNMS would search ifAlias/ifDescr/ifName for the field name."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "ports_search_field", {"field": "ifVlan", "search": "0"}
+        )
+    assert result.data["status"] == "error"
+    assert 'cannot search ports for "0"' in result.data["message"]
+    assert requests == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("search", ["00", "10"])
+async def test_ports_search_field_sends_other_numbers(server, search):
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool(
+            "ports_search_field", {"field": "ifVlan", "search": search}
+        )
+    assert [r.url.raw_path.decode() for r in requests] == [
+        f"/api/v0/ports/search/ifVlan/{search}"
+    ]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("tool", ["logs_eventlog", "logs_syslog", "logs_alertlog"])
 async def test_log_tools_reject_unknown_hostnames(server, tool):
     """LibreNMS answers an unknown hostname with every device's logs."""

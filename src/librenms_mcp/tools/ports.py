@@ -184,7 +184,12 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
                 description="Field to search: ifAlias, ifDescr, ifName, ifType, etc."
             ),
         ],
-        search: Annotated[str, Field(description="Search term")],
+        search: Annotated[
+            str,
+            Field(
+                description='Search term. "0" is not supported: LibreNMS treats it as empty.'
+            ),
+        ],
         ctx: Context,
         limit: Annotated[
             int,
@@ -216,6 +221,14 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             dict: The JSON response from the API.
         """
         try:
+            if search == "0":
+                # LibreNMS treats a search of "0" as empty (PHP empty()) and
+                # would then search ifAlias, ifDescr and ifName for the field
+                # name, passing off unrelated ports as matches.
+                return error_body(
+                    'LibreNMS cannot search ports for "0": it treats the term '
+                    "as empty and would search for the field name instead"
+                )
             await ctx.info(f"Searching ports {field}={search}...")
 
             async with LibreNMSClient(config) as client:
