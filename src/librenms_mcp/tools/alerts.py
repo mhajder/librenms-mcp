@@ -9,6 +9,7 @@ from fastmcp.server.context import Context
 from pydantic import Field
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.tools.name_refs import is_librenms_id
 from librenms_mcp.utils import error_body
 from librenms_mcp.utils import error_if_no_alert
 from librenms_mcp.utils import not_found_if_empty
@@ -20,6 +21,47 @@ from librenms_mcp.utils import paginate_list
 # asked for too, so an alert in a state LibreNMS adds later is not reported as
 # missing; a state no alert has matches nothing.
 ALL_ALERT_STATES = ",".join(str(state) for state in range(16))
+
+
+def _edit_id_error(payload: dict[str, Any], key: str, kind: str) -> dict | None:
+    """
+    Return an error unless payload[key] is a positive integer ID.
+
+    LibreNMS's alert rule and template endpoints share one handler for add
+    and edit, which edits when the body's ID is numeric and creates otherwise:
+    without an ID, a PUT creates a new object, so a forgotten ID would add a
+    duplicate on every retry while reporting success.
+    """
+    value = payload.get(key)
+    # Not stripped: str.strip() also drops Unicode spaces, which PHP's
+    # is_numeric() does not accept, so ' 5' with a no-break space would
+    # still create an object.
+    if isinstance(value, str) and is_librenms_id(value):
+        value = int(value)
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 1:
+        return None
+    return error_body(
+        f"payload must include {key}, the ID of the {kind} to edit, "
+        f"got {payload.get(key)!r}"
+    )
+
+
+def _add_id_error(
+    payload: dict[str, Any], key: str, kind: str, edit_tool: str
+) -> dict | None:
+    """
+    Return an error if payload carries an ID (payload[key]).
+
+    The shared add/edit handler (see _edit_id_error) edits the object with a
+    numeric ID, so a payload reused from a get call would overwrite an
+    existing object instead of adding one.
+    """
+    if payload.get(key) is None:
+        return None
+    return error_body(
+        f"payload must not include {key} when adding an {kind}; "
+        f"use {edit_tool} to change an existing one"
+    )
 
 
 def register_alert_tools(mcp, config):
@@ -358,6 +400,8 @@ def register_alert_tools(mcp, config):
 - notes (optional): Rule notes
 - disabled (optional): Disable rule (0/1)
 
+Do not include rule_id: LibreNMS would edit that rule instead of adding one.
+
 Example:
 {"name": "Device Down", "severity": "critical", "devices": [-1], "builder": {"condition": "AND", "rules": [...]}}"""
             ),
@@ -374,6 +418,9 @@ Example:
             dict: The JSON response from the API.
         """
         try:
+            error = _add_id_error(payload, "rule_id", "alert rule", "alert_rule_edit")
+            if error:
+                return error
             await ctx.info("Adding new alert rule...")
 
             async with LibreNMSClient(config) as client:
@@ -396,7 +443,8 @@ Example:
             dict,
             Field(
                 description="""Alert rule edit payload (must include rule_id field):
-- rule_id (required): Rule ID to edit
+- rule_id (required): Integer rule ID to edit. Without it LibreNMS would create a new
+  rule, so the tool refuses the call.
 - name: Rule name
 - builder: Rule builder JSON with conditions
 - devices: Array of device IDs or [-1] for all devices
@@ -422,6 +470,9 @@ Example:
             dict: The JSON response from the API.
         """
         try:
+            error = _edit_id_error(payload, "rule_id", "alert rule")
+            if error:
+                return error
             await ctx.info(f"Editing rule {payload.get('rule_id')}...")
 
             async with LibreNMSClient(config) as client:
@@ -565,7 +616,8 @@ Example:
 - alert_rules (required): Array of alert rule IDs to associate with this template (use [] for none)
 
 LibreNMS renders title, title_rec and template against test data and reads
-alert_rules unconditionally, so all five fields must be present.
+alert_rules unconditionally, so all five fields must be present. Do not
+include template_id: LibreNMS would edit that template instead of creating one.
 
 Example:
 {"name": "Custom Alert", "template": "{{ $alert->title }}\\nSeverity: {{ $alert->severity }}", "title": "Alert: {{ $alert->title }}", "title_rec": "Recovered: {{ $alert->title }}", "alert_rules": []}"""
@@ -583,6 +635,11 @@ Example:
             dict: The JSON response from the API.
         """
         try:
+            error = _add_id_error(
+                payload, "template_id", "alert template", "alert_template_edit"
+            )
+            if error:
+                return error
             await ctx.info("Creating new alert template...")
 
             async with LibreNMSClient(config) as client:
@@ -605,8 +662,8 @@ Example:
             dict,
             Field(
                 description="""Alert template edit payload (must include template_id):
-- template_id (required): Template ID to edit. Without it LibreNMS creates a new
-  template instead of editing the existing one.
+- template_id (required): Integer template ID to edit. Without it LibreNMS would create a
+  new template, so the tool refuses the call.
 - name (required): Template name
 - template (required): Template body (Laravel Blade syntax)
 - title (required): Alert title template
@@ -629,6 +686,9 @@ the ones being changed."""
             dict: The JSON response from the API.
         """
         try:
+            error = _edit_id_error(payload, "template_id", "alert template")
+            if error:
+                return error
             await ctx.info(f"Editing alert template {payload.get('template_id')}...")
 
             async with LibreNMSClient(config) as client:
