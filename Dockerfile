@@ -29,14 +29,14 @@ LABEL org.opencontainers.image.title="LibreNMS MCP Server" \
 ENV PYTHONUNBUFFERED=1
 
 RUN apk add --no-cache ca-certificates \
-    && addgroup -g 1000 appuser \
-    && adduser -D -u 1000 -G appuser appuser
+    && addgroup -g 10001 appuser \
+    && adduser -D -u 10001 -G appuser appuser
 
-COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
+COPY --from=builder /app/.venv /app/.venv
 
 WORKDIR /app
 
-USER appuser
+USER 10001:10001
 
 ENV PATH="/app/.venv/bin:$PATH"
 
