@@ -100,15 +100,20 @@ librenms-mcp
 
 ### Using Docker
 
-A Docker images are available on GitHub Packages for easy deployment.
+A Docker image is available on GitHub Packages for easy deployment. It runs the
+HTTP Streamable transport on port 8000 (`/mcp`).
 
 ```sh
-# Normal STDIO image
 docker pull ghcr.io/mhajder/librenms-mcp:latest
-
-# MCPO image for usage with Open WebUI
-docker pull ghcr.io/mhajder/librenms-mcpo:latest
 ```
+
+#### Open WebUI
+
+Open WebUI 0.6.31 and later connect to the image directly; the separate MCPO
+image (`ghcr.io/mhajder/librenms-mcpo`) is no longer published. In Open WebUI,
+go to **Admin Settings > Integrations > External Tool Servers**, add a connection
+of type **MCP (Streamable HTTP)** with the URL `http://<host>:8000/mcp`, and set
+Bearer authentication to your `MCP_HTTP_BEARER_TOKEN`.
 
 ### Development Setup
 
