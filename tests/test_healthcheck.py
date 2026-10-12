@@ -34,7 +34,11 @@ def _serve(status: int) -> Iterator[int]:
             pass
 
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    # shutdown() waits for the next poll; the default 0.5s interval adds that
+    # much to every test.
+    thread = threading.Thread(
+        target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True
+    )
     thread.start()
     try:
         yield server.server_address[1]
@@ -174,7 +178,7 @@ def test_real_server_health_endpoint_needs_no_token(monkeypatch, closed_port, tm
         while healthcheck.main() != 0:
             assert server.poll() is None, "server exited"
             assert time.monotonic() < deadline, "server never became healthy"
-            time.sleep(0.3)
+            time.sleep(0.05)
     finally:
         server.terminate()
         server.wait(timeout=10)

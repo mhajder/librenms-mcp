@@ -31,8 +31,24 @@ def _librenms_default(request: httpx2.Request) -> httpx2.Response:
     return httpx2.Response(200, json={"status": "ok"})
 
 
+CONFIG = LibreNMSConfig(librenms_url="https://nms.invalid", token="t")
+
+
+@pytest.fixture(scope="module")
+def tools_server() -> FastMCP:
+    """Build the server with every tool registered once for the module.
+
+    Registering all tools takes about half a second. The tools look up the
+    LibreNMSClient singleton on each call, so sharing the server does not share
+    the scripted LibreNMS between tests.
+    """
+    mcp = FastMCP("test")
+    register_tools(mcp, CONFIG)
+    return mcp
+
+
 @pytest.fixture
-def server():
+def server(tools_server):
     """Yield (mcp, requests, set_handler) backed by a scripted LibreNMS.
 
     LibreNMSClient is a singleton, so the class state is reset around each test
@@ -40,7 +56,6 @@ def server():
     """
     LibreNMSClient._instance = None
     LibreNMSClient._initialized = False
-    config = LibreNMSConfig(librenms_url="https://nms.invalid", token="t")
     requests: list[httpx2.Request] = []
     state = {"handler": _librenms_default}
 
@@ -48,18 +63,16 @@ def server():
         requests.append(request)
         return state["handler"](request)
 
-    client = LibreNMSClient(config)
+    client = LibreNMSClient(CONFIG)
     client.client = httpx2.AsyncClient(
         base_url=client.base_url, transport=httpx2.MockTransport(transport)
     )
-    mcp = FastMCP("test")
-    register_tools(mcp, config)
 
     def set_handler(handler) -> None:
         state["handler"] = handler
 
     try:
-        yield mcp, requests, set_handler
+        yield tools_server, requests, set_handler
     finally:
         LibreNMSClient._instance = None
         LibreNMSClient._initialized = False
