@@ -7,6 +7,7 @@ import httpx2
 
 from librenms_mcp.models import LibreNMSConfig
 from librenms_mcp.models import TransportConfig
+from librenms_mcp.redact import redact_credentials
 from librenms_mcp.utils import HTTP_TRANSPORTS
 from librenms_mcp.utils import env_bool
 from librenms_mcp.utils import env_int
@@ -258,7 +259,7 @@ class LibreNMSClient:
             # redirect carries a JSON body.
             raise _http_error(resp, method, url, None)
         try:
-            body = resp.json()
+            body = redact_credentials(resp.json())
         except ValueError as e:
             raise _http_error(resp, method, url, None) from e
         if resp.is_success:

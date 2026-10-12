@@ -407,6 +407,18 @@ Check `status == "error"`. Up to 1.11.3, exceptions were returned as
 
 ## Security & Safety Features
 
+### SNMP Credential Redaction
+
+LibreNMS returns the full device record from its device endpoints (get, list
+and search), including the SNMP community and the SNMPv3 username and
+passphrases in plain text. No tool needs them, and anything a tool returns
+ends up in an AI client's context, chat history and traces, so the server
+replaces every set `community`, `authname`, `authpass` and `cryptopass` value
+with `<redacted>` as soon as a response is decoded. Unset values stay as they
+are, so you can still see whether a credential is configured; the SNMP
+version and algorithms are left visible for troubleshooting. Credentials sent
+with `device_add` are unaffected.
+
 ### Read-Only Mode
 
 The server supports a read-only mode that disables all write operations for safe monitoring:
