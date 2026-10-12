@@ -6,6 +6,7 @@ from fastmcp import Client
 from fastmcp import FastMCP
 
 from librenms_mcp.librenms_client import LibreNMSClient
+from librenms_mcp.librenms_client import get_librenms_config_from_env
 from librenms_mcp.models import LibreNMSConfig
 from librenms_mcp.redact import REDACTED
 from librenms_mcp.redact import redact_credentials
@@ -36,15 +37,11 @@ def test_redacts_set_credentials_at_any_depth_and_keeps_unset_ones():
     assert body["devices"][0]["authpass"] == "s3cret-auth"  # input left untouched
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize(
-    ("tool", "args"),
-    [("device_get", {"hostname": "rtr1.example.net"}), ("devices_list", {})],
-)
-async def test_device_tools_never_return_credentials(tool, args):
+async def _call(tool: str, args: dict, config: LibreNMSConfig) -> str:
+    """Call a tool against a LibreNMS that returns DEVICE; return the result text."""
     LibreNMSClient._instance = None
     LibreNMSClient._initialized = False
-    client = LibreNMSClient(CONFIG)
+    client = LibreNMSClient(config)
     client.client = httpx2.AsyncClient(
         base_url=client.base_url,
         transport=httpx2.MockTransport(
@@ -52,13 +49,41 @@ async def test_device_tools_never_return_credentials(tool, args):
         ),
     )
     mcp = FastMCP("test")
-    register_tools(mcp, CONFIG)
+    register_tools(mcp, config)
     try:
         async with Client(mcp) as mcp_client:
             result = await mcp_client.call_tool(tool, args)
     finally:
         LibreNMSClient._instance = None
         LibreNMSClient._initialized = False
-    text = result.content[0].text
+    return result.content[0].text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "args"),
+    [("device_get", {"hostname": "rtr1.example.net"}), ("devices_list", {})],
+)
+async def test_device_tools_never_return_credentials(tool, args):
+    text = await _call(tool, args, CONFIG)
     assert "rtr1.example.net" in text
     assert "s3cret" not in text
+
+
+@pytest.mark.asyncio
+async def test_redaction_can_be_turned_off():
+    config = CONFIG.model_copy(update={"redact_snmp_credentials": False})
+    text = await _call("device_get", {"hostname": "rtr1.example.net"}, config)
+    assert "s3cret-auth" in text
+    assert REDACTED not in text
+
+
+@pytest.mark.parametrize(("raw", "expected"), [(None, True), ("false", False)])
+def test_redact_snmp_credentials_setting(monkeypatch, raw, expected):
+    monkeypatch.setenv("LIBRENMS_URL", "https://nms.invalid")
+    monkeypatch.setenv("LIBRENMS_TOKEN", "t")
+    if raw is None:
+        monkeypatch.delenv("REDACT_SNMP_CREDENTIALS", raising=False)
+    else:
+        monkeypatch.setenv("REDACT_SNMP_CREDENTIALS", raw)
+    assert get_librenms_config_from_env().redact_snmp_credentials is expected

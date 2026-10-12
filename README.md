@@ -166,6 +166,11 @@ LIBRENMS_TIMEOUT=30
 # Set READ_ONLY_MODE true to disable all write operations (put, post, delete)
 READ_ONLY_MODE=false
 
+# SNMP Credential Redaction
+# Replaces SNMP community and SNMPv3 credentials in API responses with <redacted>;
+# set REDACT_SNMP_CREDENTIALS false to return them as LibreNMS sends them
+REDACT_SNMP_CREDENTIALS=true
+
 # Disabled Tags
 # Comma-separated list of tags to disable tools for (empty by default)
 # Example: DISABLED_TAGS=alert,alert-rules,alert-templates,bills
@@ -418,6 +423,13 @@ with `<redacted>` as soon as a response is decoded. Unset values stay as they
 are, so you can still see whether a credential is configured; the SNMP
 version and algorithms are left visible for troubleshooting. Credentials sent
 with `device_add` are unaffected.
+
+Redaction is on by default. A deployment whose clients need the credentials,
+such as a trusted automation, can turn it off:
+
+```env
+REDACT_SNMP_CREDENTIALS=false
+```
 
 ### Read-Only Mode
 

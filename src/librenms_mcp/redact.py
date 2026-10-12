@@ -5,7 +5,8 @@ LibreNMS returns the full device row from every device endpoint (get, list,
 search), including the SNMP community and SNMPv3 username and passphrases in
 plain text. None of the tools need them, and anything a tool returns ends up
 in an AI client's context, chat history and traces, so they are replaced as
-soon as a response is decoded (LibreNMSClient.request). Unset values stay as
+soon as a response is decoded (LibreNMSClient.request), unless
+REDACT_SNMP_CREDENTIALS is false. Unset values stay as
 they are, so a caller can still see whether a credential is configured; the
 SNMP version and algorithms are left visible for troubleshooting.
 """
