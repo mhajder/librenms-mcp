@@ -74,6 +74,5 @@ jobs:
           name: ${{ steps.release.outputs.tag_name }}
           append_body: true
           body: |
-            ## Docker Images
-            - `ghcr.io/${{ github.repository }}:${{ steps.release.outputs.tag_name }}`
-            - `ghcr.io/${{ github.repository }}o:${{ steps.release.outputs.tag_name }}`
+            ## Docker Image
+            - `ghcr.io/${{ github.repository }}:${{ steps.release.outputs.version }}`
