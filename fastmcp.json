@@ -6,7 +6,7 @@
     },
     "environment": {
         "type": "uv",
-        "python": "3.13",
+        "python": "3.15",
         "dependencies": [
             "fastmcp>=4.0.0",
             "httpx2>=2.12.0",
