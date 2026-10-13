@@ -1,5 +1,44 @@
 # Changelog
 
+## [1.12.0](https://github.com/mhajder/librenms-mcp/compare/v1.11.3...v1.12.0) (2026-10-13)
+
+
+### 🚀 Features
+
+* add Python 3.15 support ([#193](https://github.com/mhajder/librenms-mcp/issues/193)) ([5cfcc00](https://github.com/mhajder/librenms-mcp/commit/5cfcc00718c9847992602cd7a00b91fbb36bbefd))
+* **docker:** drop the MCPO image ([#184](https://github.com/mhajder/librenms-mcp/issues/184)) ([e6cf1a4](https://github.com/mhajder/librenms-mcp/commit/e6cf1a45474f44cd5809e8b458f4c2f3fa6c5cf8))
+* **tools:** fix port graphs and searches, add log and ARP filters ([#174](https://github.com/mhajder/librenms-mcp/issues/174)) ([b824ebb](https://github.com/mhajder/librenms-mcp/commit/b824ebbcbc079cf6fe0d7718a2a86769086ba410))
+
+
+### 🐛 Bug Fixes
+
+* **alerts:** refuse alert rule and template edits without an ID ([#181](https://github.com/mhajder/librenms-mcp/issues/181)) ([769c08f](https://github.com/mhajder/librenms-mcp/commit/769c08f8319e262a7fe095d5549e1624d8ced05b))
+* **client:** encode every path segment and report errors clearly ([#173](https://github.com/mhajder/librenms-mcp/issues/173)) ([ce84cf0](https://github.com/mhajder/librenms-mcp/commit/ce84cf02b433902ae2410493da7d6c8a30a7d8ce))
+* **config:** handle blank env values and unknown transports ([#171](https://github.com/mhajder/librenms-mcp/issues/171)) ([f8acbf8](https://github.com/mhajder/librenms-mcp/commit/f8acbf8d58aab6bb59a0bb73d51d3d371b702f13))
+* **config:** reject unrecognized boolean settings ([#182](https://github.com/mhajder/librenms-mcp/issues/182)) ([27bde6f](https://github.com/mhajder/librenms-mcp/commit/27bde6fef78141b8e94b5cdc0d0c5dc1f61dfc7b))
+* **config:** validate enabled feature settings and trim env values ([#175](https://github.com/mhajder/librenms-mcp/issues/175)) ([d04041a](https://github.com/mhajder/librenms-mcp/commit/d04041a5fec396778932c8f642af737c8bfaba89))
+* **docker:** run as numeric UID 10001 with root-owned app files ([#185](https://github.com/mhajder/librenms-mcp/issues/185)) ([f4167f9](https://github.com/mhajder/librenms-mcp/commit/f4167f919a434d460da1891a179629ae49d59a10))
+* **graphs:** request PNG and limit bill graph types to supported ones ([#178](https://github.com/mhajder/librenms-mcp/issues/178)) ([ec51e88](https://github.com/mhajder/librenms-mcp/commit/ec51e884750ed0d325bf4cc9d3ba78f96610e6fb))
+* **network:** require a device for arp_search query "all" ([#179](https://github.com/mhajder/librenms-mcp/issues/179)) ([12de841](https://github.com/mhajder/librenms-mcp/commit/12de841f7cbd7164e73e377123a45c95dbafa1f2))
+* **ports:** refuse to search a port field for "0" ([#180](https://github.com/mhajder/librenms-mcp/issues/180)) ([40132d1](https://github.com/mhajder/librenms-mcp/commit/40132d17ae9e8539e0758340a3acb9d4952a4d42))
+* **tools:** report unknown devices and objects instead of empty results ([#177](https://github.com/mhajder/librenms-mcp/issues/177)) ([c0781cd](https://github.com/mhajder/librenms-mcp/commit/c0781cde7e5b23560c0e580b1ef2e7c4f0650585))
+* **tools:** return errors as {status, message} like LibreNMS ([#176](https://github.com/mhajder/librenms-mcp/issues/176)) ([c1fe4b4](https://github.com/mhajder/librenms-mcp/commit/c1fe4b48b067a819eec64be399c9f4d59ccd66fb))
+
+
+### 🧩 CI
+
+* list only the published Docker image in release notes ([#187](https://github.com/mhajder/librenms-mcp/issues/187)) ([94969ac](https://github.com/mhajder/librenms-mcp/commit/94969ac0ec3633cfa31b2c5818e990c4e50cae42))
+
+
+### 📦 Build
+
+* **docker:** drop the redundant ca-certificates install ([#190](https://github.com/mhajder/librenms-mcp/issues/190)) ([b934e47](https://github.com/mhajder/librenms-mcp/commit/b934e47822594dfcb7ed858fd1033f894c5db35f))
+
+
+### 🧪 Tests
+
+* cut the suite from about 64s to 11s ([#186](https://github.com/mhajder/librenms-mcp/issues/186)) ([0272e47](https://github.com/mhajder/librenms-mcp/commit/0272e478e8be534c147b7283557c4623fd0be3ab))
+
 ## [1.11.3](https://github.com/mhajder/librenms-mcp/compare/v1.11.2...v1.11.3) (2026-10-07)
 
 
