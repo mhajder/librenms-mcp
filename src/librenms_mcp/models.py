@@ -13,6 +13,13 @@ class LibreNMSConfig(BaseModel):
     verify_ssl: bool = Field(True, description="Verify SSL (true/false)")
     timeout: int = Field(30, gt=0, description="Timeout in seconds")
     read_only_mode: bool = Field(False, description="Read-only mode (true/false)")
+    redact_snmp_credentials: bool = Field(
+        True,
+        description=(
+            "Replace SNMP community and SNMPv3 credentials in API responses with "
+            "<redacted> (true/false)"
+        ),
+    )
     disabled_tags: set[str] = Field(
         default_factory=set, description="Set of tags to disable tools for"
     )

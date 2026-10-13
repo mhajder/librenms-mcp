@@ -53,6 +53,13 @@
           "isSecret": false
         },
         {
+          "name": "REDACT_SNMP_CREDENTIALS",
+          "description": "Replace SNMP community and SNMPv3 credentials in API responses with <redacted>",
+          "default": "true",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
           "name": "DISABLED_TAGS",
           "description": "Comma-separated tool tags to disable (e.g., alerts,bills)",
           "default": "",
@@ -150,6 +157,13 @@
           "name": "READ_ONLY_MODE",
           "description": "Enable read-only mode to block write operations",
           "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "REDACT_SNMP_CREDENTIALS",
+          "description": "Replace SNMP community and SNMPv3 credentials in API responses with <redacted>",
+          "default": "true",
           "isRequired": false,
           "isSecret": false
         },
@@ -278,6 +292,13 @@
           "name": "READ_ONLY_MODE",
           "description": "Enable read-only mode to block write operations",
           "default": "false",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "REDACT_SNMP_CREDENTIALS",
+          "description": "Replace SNMP community and SNMPv3 credentials in API responses with <redacted>",
+          "default": "true",
           "isRequired": false,
           "isSecret": false
         },
