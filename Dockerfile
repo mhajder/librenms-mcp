@@ -1,4 +1,4 @@
-FROM python:3.14-alpine3.24 AS builder
+FROM python:3.15-alpine3.24 AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_LINK_MODE=copy
@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --all-extras --no-dev --no-editable
 
 
-FROM python:3.14-alpine3.24
+FROM python:3.15-alpine3.24
 LABEL org.opencontainers.image.title="LibreNMS MCP Server" \
       org.opencontainers.image.description="MCP server for LibreNMS management" \
       org.opencontainers.image.url="https://github.com/mhajder/librenms-mcp" \
