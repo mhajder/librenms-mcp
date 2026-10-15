@@ -107,6 +107,13 @@
           "default": "5",
           "isRequired": false,
           "isSecret": false
+        },
+        {
+          "name": "RESOLVE_SHORT_HOSTNAMES",
+          "description": "Resolve short device names to the stored hostname of the one matching device",
+          "default": "false",
+          "isRequired": false,
+          "isSecret": false
         }
       ]
     },
@@ -206,6 +213,13 @@
           "name": "TOOL_SEARCH_MAX_RESULTS",
           "description": "Maximum number of tools returned by search_tools",
           "default": "5",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RESOLVE_SHORT_HOSTNAMES",
+          "description": "Resolve short device names to the stored hostname of the one matching device",
+          "default": "false",
           "isRequired": false,
           "isSecret": false
         },
@@ -334,6 +348,13 @@
           "name": "TOOL_SEARCH_MAX_RESULTS",
           "description": "Maximum number of tools returned by search_tools",
           "default": "5",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "RESOLVE_SHORT_HOSTNAMES",
+          "description": "Resolve short device names to the stored hostname of the one matching device",
+          "default": "false",
           "isRequired": false,
           "isSecret": false
         },
