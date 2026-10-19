@@ -22,6 +22,8 @@ FROM python:3.15-alpine3.24
 LABEL org.opencontainers.image.title="LibreNMS MCP Server" \
       org.opencontainers.image.description="MCP server for LibreNMS management" \
       org.opencontainers.image.url="https://github.com/mhajder/librenms-mcp" \
+      org.opencontainers.image.documentation="https://github.com/mhajder/librenms-mcp#readme" \
+      org.opencontainers.image.authors="Mateusz Hajder" \
       org.opencontainers.image.source="https://github.com/mhajder/librenms-mcp" \
       org.opencontainers.image.vendor="Mateusz Hajder" \
       org.opencontainers.image.licenses="MIT" \
