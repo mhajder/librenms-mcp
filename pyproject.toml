@@ -140,6 +140,9 @@ force-single-line = true
 [tool.typos.default.extend-identifiers]
 TrUe = "TrUe"
 
+[tool.typos.default.extend-words]
+certifi = "certifi"
+
 [tool.commitizen]
 name = "cz_conventional_commits"
 tag_format = "v$version"
