@@ -7,6 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: write
   contents: write
   issues: write
   pull-requests: write
@@ -29,7 +30,6 @@ jobs:
       - uses: googleapis/release-please-action@v5
         id: release
         with:
-          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
           target-branch: main
@@ -37,7 +37,7 @@ jobs:
       - name: Update OCI identifier in PR
         if: steps.release.outputs.pr != null
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
           PR_JSON: ${{ steps.release.outputs.pr }}
         run: |
           # Get PR info from environment variable
@@ -76,3 +76,12 @@ jobs:
           body: |
             ## Docker Image
             - `ghcr.io/${{ github.repository }}:${{ steps.release.outputs.version }}`
+
+      - name: Trigger publish workflows
+        if: steps.release.outputs.release_created == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ steps.release.outputs.tag_name }}
+        run: |
+          gh workflow run publish.yml --repo ${{ github.repository }} --ref "$TAG_NAME"
+          gh workflow run docker-publish.yml --repo ${{ github.repository }} --ref "$TAG_NAME"
