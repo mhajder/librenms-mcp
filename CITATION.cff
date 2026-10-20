@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "LibreNMS MCP Server"
+abstract: "MCP server for LibreNMS (network monitoring): devices, ports, inventory, locations and groups, alerts and alert rules, eventlog/syslog, graphs, billing, BGP/OSPF/VRF, ARP/FDB lookups, sensors, services and Oxidized configs. Read-only mode, tag-based tool filtering and rate limiting."
+authors:
+  - given-names: Mateusz
+    family-names: Hajder
+repository-code: "https://github.com/mhajder/librenms-mcp"
+url: "https://pypi.org/project/librenms-mcp/"
+license: MIT
+version: 1.12.0
+keywords:
+  - mcp
+  - mcp-server
+  - model-context-protocol
+  - fastmcp
+  - ai-agents
+  - librenms
+  - network-monitoring
+  - snmp
