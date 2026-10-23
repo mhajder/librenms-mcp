@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.12.1](https://github.com/mhajder/librenms-mcp/compare/v1.12.0...v1.12.1) (2026-10-23)
+
+
+### 🐛 Bug Fixes
+
+* **deps:** update certifi to 2026.10.19 ([#203](https://github.com/mhajder/librenms-mcp/issues/203)) ([b4c2f5c](https://github.com/mhajder/librenms-mcp/commit/b4c2f5c32a33c650f27983a6346ccb893358ac6a))
+
+
+### 📚 Documentation
+
+* add CITATION.cff ([#199](https://github.com/mhajder/librenms-mcp/issues/199)) ([8bfe279](https://github.com/mhajder/librenms-mcp/commit/8bfe27989262a3d015dc0b5806302eb02233cada))
+* add security policy, contributing guide and issue forms, refresh README ([#200](https://github.com/mhajder/librenms-mcp/issues/200)) ([7b72165](https://github.com/mhajder/librenms-mcp/commit/7b7216525c1eda23c5023b8fa267b11ec2c4de72))
+
+
+### 🧩 CI
+
+* add SBOM and signed build provenance attestations ([#207](https://github.com/mhajder/librenms-mcp/issues/207)) ([2f0fee5](https://github.com/mhajder/librenms-mcp/commit/2f0fee5b457903282c8c3a371c6b1f07e904000d))
+* publish to the MCP Registry from the release commit ([#198](https://github.com/mhajder/librenms-mcp/issues/198)) ([82065ef](https://github.com/mhajder/librenms-mcp/commit/82065efa9dd5c25f74c199ae355f89d0a4557347))
+* release with the default GITHUB_TOKEN ([#202](https://github.com/mhajder/librenms-mcp/issues/202)) ([5885981](https://github.com/mhajder/librenms-mcp/commit/58859818447c88bde83da7502d239b29dffe8152))
+* retry the MCP Registry publish on transient failures ([#195](https://github.com/mhajder/librenms-mcp/issues/195)) ([290ee38](https://github.com/mhajder/librenms-mcp/commit/290ee38170b156d53360016681cb2609422b6c9e))
+
+
+### 📦 Build
+
+* **docker:** add OCI documentation and authors labels ([#196](https://github.com/mhajder/librenms-mcp/issues/196)) ([2eeb16d](https://github.com/mhajder/librenms-mcp/commit/2eeb16de19e89aff64504a81f8aaed654d84282a))
+
 ## [1.12.0](https://github.com/mhajder/librenms-mcp/compare/v1.11.3...v1.12.0) (2026-10-13)
 
 
