@@ -14,6 +14,7 @@ jobs:
       url: https://pypi.org/p/librenms-mcp
     permissions:
       id-token: write # Mandatory for Trusted Publishing
+      attestations: write # Required to store the build provenance attestation
 
     steps:
       - name: Checkout code
@@ -30,5 +31,55 @@ jobs:
       - name: Build package
         run: uv build
 
+      - name: Attest package build provenance
+        id: attest
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/*
+
+      - name: Collect release assets
+        env:
+          BUNDLE_PATH: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          mkdir release-assets
+          cp dist/* release-assets/
+          cp "$BUNDLE_PATH" "release-assets/${GITHUB_REPOSITORY#*/}-${GITHUB_REF_NAME#v}.sigstore.json"
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-assets
+          path: release-assets/
+
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  upload-release-assets:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [publish]
+    permissions:
+      contents: write # Required to upload assets to the GitHub release
+
+    steps:
+      - name: Download release assets
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets
+          path: release-assets
+
+      - name: Upload assets to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # release-please creates the release before dispatching this workflow
+          for attempt in $(seq 1 10); do
+            if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+              gh release upload "$GITHUB_REF_NAME" release-assets/* --repo "$GITHUB_REPOSITORY" --clobber
+              exit 0
+            fi
+            echo "Release $GITHUB_REF_NAME not found yet, retrying in 15s ($attempt/10)"
+            sleep 15
+          done
+          echo "::error::Release $GITHUB_REF_NAME not found"
+          exit 1
