@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.13.0](https://github.com/mhajder/librenms-mcp/compare/v1.12.1...v1.13.0) (2026-10-26)
+
+
+### 🚀 Features
+
+* **tools:** add device_wireless_sensors, device_parents_set and device_parents_clear ([#210](https://github.com/mhajder/librenms-mcp/issues/210)) ([8a65683](https://github.com/mhajder/librenms-mcp/commit/8a65683f0d2e8f4390681967eba4f85d49c0ba5f))
+
+
+### 🐛 Bug Fixes
+
+* **tools:** tag device_rename admin ([#212](https://github.com/mhajder/librenms-mcp/issues/212)) ([8a74026](https://github.com/mhajder/librenms-mcp/commit/8a74026c698fc9fcc56bd726f707946adf4df88c))
+
 ## [1.12.1](https://github.com/mhajder/librenms-mcp/compare/v1.12.0...v1.12.1) (2026-10-23)
 
 

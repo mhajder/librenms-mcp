@@ -13,7 +13,7 @@ authors:
 repository-code: https://github.com/mhajder/librenms-mcp
 url: https://pypi.org/project/librenms-mcp/
 license: MIT
-version: 1.12.1
+version: 1.13.0
 keywords:
   - mcp
   - mcp-server
