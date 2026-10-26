@@ -406,6 +406,7 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
         rate_limit_enabled=rate_limit_enabled,
         tool_search_enabled=tool_search_enabled,
         tool_search_strategy=tool_search_strategy,
+        resolve_short_hostnames=env_bool("RESOLVE_SHORT_HOSTNAMES", default=False),
         **numbers,
     )
 

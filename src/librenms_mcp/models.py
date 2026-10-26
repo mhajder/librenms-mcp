@@ -34,6 +34,13 @@ class LibreNMSConfig(BaseModel):
         5,
         description="Maximum number of tools returned by search_tools",
     )
+    resolve_short_hostnames: bool = Field(
+        False,
+        description=(
+            "Resolve a bare short device name to the stored hostname of the one "
+            "device it names (true/false)"
+        ),
+    )
 
     @model_validator(mode="after")
     def _check_enabled_features(self) -> "LibreNMSConfig":
