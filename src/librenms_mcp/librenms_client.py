@@ -7,6 +7,7 @@ import httpx2
 
 from librenms_mcp.models import LibreNMSConfig
 from librenms_mcp.models import TransportConfig
+from librenms_mcp.redact import redact_credentials
 from librenms_mcp.utils import HTTP_TRANSPORTS
 from librenms_mcp.utils import env_bool
 from librenms_mcp.utils import env_int
@@ -261,6 +262,8 @@ class LibreNMSClient:
             body = resp.json()
         except ValueError as e:
             raise _http_error(resp, method, url, None) from e
+        if self.config.redact_snmp_credentials:
+            body = redact_credentials(body)
         if resp.is_success:
             return body
         raw_body = body
@@ -402,6 +405,7 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
         verify_ssl=env_bool("LIBRENMS_VERIFY_SSL", default=True),
         timeout=_env_setting("LIBRENMS_TIMEOUT", "timeout"),
         read_only_mode=env_bool("READ_ONLY_MODE", default=False),
+        redact_snmp_credentials=env_bool("REDACT_SNMP_CREDENTIALS", default=True),
         disabled_tags=disabled_tags,
         rate_limit_enabled=rate_limit_enabled,
         tool_search_enabled=tool_search_enabled,
