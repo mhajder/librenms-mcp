@@ -1257,3 +1257,148 @@ Example dynamic group:
         except Exception as e:
             await ctx.error(f"Error listing NAC sessions for {hostname}: {e!s}")
             return error_body(str(e))
+
+    @mcp.tool(
+        tags={"librenms", "devices", "read-only"},
+        annotations={
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+        },
+    )
+    async def device_wireless_sensors(
+        hostname: Annotated[str, Field(description="Device hostname or device ID")],
+        ctx: Context,
+        sensor_class: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description="Only this wireless sensor class, e.g. clients, rssi, frequency",
+            ),
+        ] = None,
+    ) -> dict:
+        """
+        List the wireless sensors of a device with their current values.
+
+        Wireless readings (frequency, clients, distance, rssi, ccq, rate,
+        noise-floor, power, quality, capacity, utilization) are kept apart
+        from the health sensors in LibreNMS, so they do not appear in
+        health_* or sensors_list; this is the only route that returns them.
+
+        Args:
+            hostname (str): Device hostname or device ID.
+            sensor_class (str, optional): Only this class, e.g. clients, rssi,
+                frequency, noise-floor. LibreNMS rejects unknown classes.
+
+        Returns:
+            dict: The JSON response from the API.
+        """
+        try:
+            await ctx.info(f"Listing wireless sensors for {hostname}...")
+
+            async with LibreNMSClient(config) as client:
+                # An unknown device gets "No wireless sensors found", as if it
+                # had none: the filter is on its device_id, never dropped.
+                result = await client.get(
+                    "devices",
+                    hostname,
+                    "wireless-sensors",
+                    params={"class": sensor_class} if sensor_class else None,
+                )
+                return await device_error_if_empty(
+                    client, hostname, result, "wireless_sensors"
+                )
+
+        except Exception as e:
+            await ctx.error(f"Error listing wireless sensors for {hostname}: {e!s}")
+            return error_body(str(e))
+
+    @mcp.tool(
+        tags={"librenms", "devices", "admin"},
+        annotations={
+            "readOnlyHint": False,
+            "destructiveHint": False,
+            "idempotentHint": True,
+        },
+    )
+    async def device_parents_set(
+        hostname: Annotated[str, Field(description="Device hostname or device ID")],
+        parent_ids: Annotated[
+            str,
+            Field(
+                description="Comma-separated parent device IDs or hostnames; replaces the current parents"
+            ),
+        ],
+        ctx: Context,
+    ) -> dict:
+        """
+        Set the dependency parents of a device.
+
+        Parents drive alert suppression: a device whose parent is down is not
+        alerted on its own. LibreNMS replaces the device's parents with the
+        given ones (it syncs the set), so pass every parent the device should
+        keep. A device cannot be its own parent.
+
+        Args:
+            hostname (str): Device hostname or device ID.
+            parent_ids (str): Comma-separated parent device IDs or hostnames.
+
+        Returns:
+            dict: The JSON response from the API.
+        """
+        try:
+            await ctx.info(f"Setting parents of {hostname} to {parent_ids}...")
+
+            async with LibreNMSClient(config) as client:
+                return await client.post(
+                    "devices", hostname, "parents", data={"parent_ids": parent_ids}
+                )
+
+        except Exception as e:
+            await ctx.error(f"Error setting parents of {hostname}: {e!s}")
+            return error_body(str(e))
+
+    @mcp.tool(
+        tags={"librenms", "devices", "admin"},
+        annotations={
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": True,
+        },
+    )
+    async def device_parents_clear(
+        hostname: Annotated[str, Field(description="Device hostname or device ID")],
+        ctx: Context,
+        parent_ids: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description="Comma-separated parent device IDs or hostnames to remove; omit to remove every parent",
+            ),
+        ] = None,
+    ) -> dict:
+        """
+        Remove dependency parents from a device.
+
+        Args:
+            hostname (str): Device hostname or device ID.
+            parent_ids (str, optional): Comma-separated parent device IDs or
+                hostnames to remove. Without it, every parent is removed.
+
+        Returns:
+            dict: The JSON response from the API.
+        """
+        # LibreNMS removes every parent when parent_ids is empty, so a blank
+        # value must not be read as "omitted".
+        if parent_ids is not None and not parent_ids.strip():
+            return error_body("parent_ids is empty; omit it to remove every parent")
+        try:
+            await ctx.info(f"Removing parents from {hostname}...")
+
+            async with LibreNMSClient(config) as client:
+                data = {"parent_ids": parent_ids} if parent_ids is not None else None
+                return await client.delete("devices", hostname, "parents", data=data)
+
+        except Exception as e:
+            await ctx.error(f"Error removing parents from {hostname}: {e!s}")
+            return error_body(str(e))

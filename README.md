@@ -251,6 +251,9 @@ MCP_TRANSPORT=stdio
 - `device_maintenance_status`: Get the maintenance status for a device
 - `device_vlans`: List VLANs for a device
 - `device_links`: List links for a device
+- `device_wireless_sensors`: List wireless sensors (frequency, clients, rssi, ...) with current values
+- `device_parents_set`: Set the dependency parents of a device (replaces the current set)
+- `device_parents_clear`: Remove dependency parents from a device
 - `device_eventlog_add`: Add an event log entry for a device
 - `inventory_device`: Get inventory for a device
 - `inventory_device_flat`: Get flat inventory for a device
