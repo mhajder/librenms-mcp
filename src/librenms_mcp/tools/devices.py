@@ -1269,6 +1269,13 @@ Example dynamic group:
     async def device_wireless_sensors(
         hostname: Annotated[str, Field(description="Device hostname or device ID")],
         ctx: Context,
+        sensor_class: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description="Only this wireless sensor class, e.g. clients, rssi, frequency",
+            ),
+        ] = None,
     ) -> dict:
         """
         List the wireless sensors of a device with their current values.
@@ -1280,6 +1287,8 @@ Example dynamic group:
 
         Args:
             hostname (str): Device hostname or device ID.
+            sensor_class (str, optional): Only this class, e.g. clients, rssi,
+                frequency, noise-floor. LibreNMS rejects unknown classes.
 
         Returns:
             dict: The JSON response from the API.
@@ -1288,17 +1297,24 @@ Example dynamic group:
             await ctx.info(f"Listing wireless sensors for {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                _, error = await lookup_device(client, hostname)
-                if error:
-                    return error
-                return await client.get("devices", hostname, "wireless-sensors")
+                # An unknown device gets "No wireless sensors found", as if it
+                # had none: the filter is on its device_id, never dropped.
+                result = await client.get(
+                    "devices",
+                    hostname,
+                    "wireless-sensors",
+                    params={"class": sensor_class} if sensor_class else None,
+                )
+                return await device_error_if_empty(
+                    client, hostname, result, "wireless_sensors"
+                )
 
         except Exception as e:
             await ctx.error(f"Error listing wireless sensors for {hostname}: {e!s}")
             return error_body(str(e))
 
     @mcp.tool(
-        tags={"librenms", "devices"},
+        tags={"librenms", "devices", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": False,
@@ -1343,7 +1359,7 @@ Example dynamic group:
             return error_body(str(e))
 
     @mcp.tool(
-        tags={"librenms", "devices"},
+        tags={"librenms", "devices", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
@@ -1372,11 +1388,15 @@ Example dynamic group:
         Returns:
             dict: The JSON response from the API.
         """
+        # LibreNMS removes every parent when parent_ids is empty, so a blank
+        # value must not be read as "omitted".
+        if parent_ids is not None and not parent_ids.strip():
+            return error_body("parent_ids is empty; omit it to remove every parent")
         try:
             await ctx.info(f"Removing parents from {hostname}...")
 
             async with LibreNMSClient(config) as client:
-                data = {"parent_ids": parent_ids} if parent_ids else None
+                data = {"parent_ids": parent_ids} if parent_ids is not None else None
                 return await client.delete("devices", hostname, "parents", data=data)
 
         except Exception as e:
