@@ -953,7 +953,7 @@ Example dynamic group:
             return error_body(str(e))
 
     @mcp.tool(
-        tags={"librenms", "devices"},
+        tags={"librenms", "devices", "admin"},
         annotations={
             "readOnlyHint": False,
             "destructiveHint": True,
