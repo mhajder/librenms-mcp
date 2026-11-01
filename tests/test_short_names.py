@@ -24,15 +24,27 @@ DEVICES = [
     {"device_id": 2, "hostname": "rtr10.dc1.example.net", "sysName": "rtr10"},
     {"device_id": 3, "hostname": "sw1.dc1.example.net", "authpass": "secret"},
     {"device_id": 4, "hostname": "sw1.dc2.example.net", "authpass": "secret"},
+    # A stored bare hostname next to an FQDN with the same short name.
+    {"device_id": 5, "hostname": "core1", "sysName": "core1"},
+    {"device_id": 6, "hostname": "core1.dc2.example.net", "sysName": "core1"},
+    # Added by IP: only its sysName carries the name.
+    {"device_id": 7, "hostname": "10.1.1.7", "sysName": "edge1"},
 ]
 
 
 def _librenms(request: httpx2.Request) -> httpx2.Response:
-    """A LibreNMS that knows DEVICES by stored hostname or ID only."""
+    """A LibreNMS that knows DEVICES by stored hostname or ID only.
+
+    Its devices search matches hostnames as a substring and sysNames exactly,
+    both ignoring case, like LibreNMS on MySQL.
+    """
     parts = request.url.path.split("/")
-    if parts[3:] == ["devices"] and request.url.params.get("type") == "hostname":
-        query = request.url.params["query"]
-        hits = [d for d in DEVICES if query.lower() in str(d["hostname"])]
+    if parts[3:] == ["devices"] and _is_search(request):
+        query = request.url.params["query"].casefold()
+        if request.url.params["type"] == "hostname":
+            hits = [d for d in DEVICES if query in str(d["hostname"]).casefold()]
+        else:
+            hits = [d for d in DEVICES if query == str(d.get("sysName")).casefold()]
         return httpx2.Response(200, json={"status": "ok", "devices": hits})
     if request.method == "GET" and len(parts) == 5 and parts[3] == "devices":
         name = unquote(parts[4])
@@ -80,7 +92,7 @@ def server(tools_server):
 
 
 def _is_search(request: httpx2.Request) -> bool:
-    return request.url.params.get("type") == "hostname"
+    return request.url.params.get("type") in ("hostname", "sysName")
 
 
 @pytest.mark.parametrize(
@@ -91,6 +103,8 @@ def _is_search(request: httpx2.Request) -> bool:
         (FQDN, False),
         ("10.0.0.1", False),
         ("468", False),
+        ("::1", False),
+        ("2001:db8::1", False),
         ("", False),
         (None, False),
         (468, False),
@@ -114,6 +128,8 @@ def test_is_short_name(value, expected):
             {"query": "all", "device": "rtr1"},
             f"/api/v0/resources/ip/arp/all?device={FQDN}",
         ),
+        # Stripped, as the query-filter tools and LibreNMS do.
+        ("bgp_sessions", {"hostname": " rtr1 "}, f"/api/v0/bgp?hostname={FQDN}"),
     ],
 )
 async def test_short_name_resolves_everywhere(server, tool, args, expected_url):
@@ -130,16 +146,45 @@ async def test_short_name_resolves_everywhere(server, tool, args, expected_url):
 
 
 @pytest.mark.asyncio
-async def test_ambiguous_short_name_is_refused_without_secrets(server):
+@pytest.mark.parametrize(
+    ("tool", "args"),
+    [
+        ("bgp_sessions", {"hostname": "sw1"}),
+        # Returns an image: an error body would read as an empty success.
+        ("device_graph", {"hostname": "sw1", "graph_type": "device_bits"}),
+    ],
+)
+async def test_ambiguous_short_name_is_refused_without_secrets(server, tool, args):
     mcp, requests, _ = server
     async with Client(mcp) as client:
-        result = await client.call_tool("bgp_sessions", {"hostname": "sw1"})
-    assert result.data["status"] == "error"
-    message = result.data["message"]
+        result = await client.call_tool(tool, args, raise_on_error=False)
+    assert result.is_error
+    message = result.content[0].text
     assert "matches 2 devices" in message
     assert "sw1.dc2.example.net (ID 4)" in message
-    assert "secret" not in result.content[0].text
+    assert "secret" not in message
     assert all(_is_search(r) for r in requests)
+
+
+@pytest.mark.asyncio
+async def test_exact_stored_hostname_wins_over_short_names(server):
+    """core1 is a stored hostname: it must not be refused as ambiguous."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        result = await client.call_tool("device_get", {"hostname": "core1"})
+    assert not result.is_error
+    assert "/api/v0/devices/core1" in [r.url.path for r in requests]
+
+
+@pytest.mark.asyncio
+async def test_short_name_resolves_by_sysname(server):
+    """A device added by IP is found by its sysName."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool("bgp_sessions", {"hostname": "EDGE1"})
+    assert "/api/v0/bgp?hostname=10.1.1.7" in [
+        unquote(r.url.raw_path.decode()) for r in requests
+    ]
 
 
 @pytest.mark.asyncio

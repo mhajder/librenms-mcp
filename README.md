@@ -206,8 +206,8 @@ TOOL_SEARCH_MAX_RESULTS=5
 
 # Short Device Names (Optional)
 # Set RESOLVE_SHORT_HOSTNAMES true to accept a device's short name ("rtr1") where
-# a hostname is expected, resolving it to the one device whose hostname or sysName,
-# up to the first dot, equals it (ignoring case)
+# a hostname is expected, resolving it to the one device whose hostname, up to the
+# first dot, or whose sysName equals it (ignoring case)
 RESOLVE_SHORT_HOSTNAMES=false
 
 # Sentry Error Tracking (Optional)
@@ -493,12 +493,15 @@ RESOLVE_SHORT_HOSTNAMES=true
 ```
 
 a bare short name in a tool's `hostname` or `device` argument is replaced by
-the stored hostname of the one device whose hostname or sysName, up to the
-first dot, equals it (ignoring case). This costs one devices search per call
-that uses a short name. Names containing a dot (FQDNs, IP addresses) and
+the stored hostname of the one device whose hostname, up to the first dot, or
+whose sysName equals it (ignoring case), so a device added by IP is found by
+its sysName. A device whose stored hostname is the name itself always wins,
+so calls that already worked keep working. Surrounding whitespace is ignored.
+This costs two devices searches (hostname and sysName) per call that uses a
+short name. Names containing a dot or a colon (FQDNs, IP addresses) and
 device IDs are sent as given, a name that matches no device is left for the
-tool to report, and a name that matches several devices is refused with the
-candidates listed.
+tool to report, and a name that matches several devices is refused with a
+tool error listing the candidates.
 
 ### Rate Limiting
 
