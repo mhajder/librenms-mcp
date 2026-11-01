@@ -437,11 +437,21 @@ LibreNMS returns the full device record from its device endpoints (get, list
 and search), including the SNMP community and the SNMPv3 username and
 passphrases in plain text. No tool needs them, and anything a tool returns
 ends up in an AI client's context, chat history and traces, so the server
-replaces every set `community`, `authname`, `authpass` and `cryptopass` value
-with `<redacted>` as soon as a response is decoded. Unset values stay as they
-are, so you can still see whether a credential is configured; the SNMP
-version and algorithms are left visible for troubleshooting. Credentials sent
-with `device_add` are unaffected.
+replaces them with `<redacted>` as soon as a response is decoded:
+
+- the `community`, `authname`, `authpass` and `cryptopass` values of device
+  records (objects with a `device_id` and a `hostname` or `snmpver`);
+- the community and SNMPv3 username and passphrase arguments (`-C`, `-U`,
+  `-A`, `-X` and their long forms) in the `service_param` of `snmp`
+  (check_snmp) services;
+- the same device values in raw response text quoted in an error message.
+
+Unset values stay as they are, so you can still see whether a credential is
+configured; the SNMP version and algorithms are left visible for
+troubleshooting. A `community` field outside a device record (a BGP
+community, for instance) is not a credential and is left as is. Credentials
+in other services' parameters (such as a check_mysql password) are not
+redacted, and credentials sent with `device_add` are unaffected.
 
 Redaction is on by default. A deployment whose clients need the credentials,
 such as a trusted automation, can turn it off:

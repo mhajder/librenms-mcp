@@ -453,6 +453,7 @@ def test_unknown_tool_search_strategy_stops_startup(monkeypatch):
     [
         "READ_ONLY_MODE",
         "LIBRENMS_VERIFY_SSL",
+        "REDACT_SNMP_CREDENTIALS",
         "RATE_LIMIT_ENABLED",
         "TOOL_SEARCH_ENABLED",
     ],
