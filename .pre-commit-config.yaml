@@ -64,7 +64,7 @@ repos:
 
       - id: local-commitizen-branch
         name: commitizen branch check
-        entry: uv run cz check --rev-range origin/HEAD..HEAD
+        entry: bash -c 'uv run cz check --rev-range "${PRE_COMMIT_FROM_REF:-origin/HEAD}..${PRE_COMMIT_TO_REF:-HEAD}"'
         language: system
         pass_filenames: false
         always_run: true

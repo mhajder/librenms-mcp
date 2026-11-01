@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest a new tool or an improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: What do you want to do with LibreNMS that the server cannot do today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: For a new tool, describe its name, arguments and what it returns.
+    validations:
+      required: true
+  - type: input
+    id: api
+    attributes:
+      label: LibreNMS API reference
+      description: Link to the LibreNMS API endpoint or docs this would use, if you know it.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

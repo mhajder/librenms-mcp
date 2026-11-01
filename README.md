@@ -1,10 +1,26 @@
+<div align="center">
+
 # LibreNMS MCP Server
+
+**Let AI agents query and manage LibreNMS network monitoring through the Model Context Protocol**
+
+[![PyPI](https://img.shields.io/pypi/v/librenms-mcp?logo=pypi&logoColor=white)](https://pypi.org/project/librenms-mcp/)
+[![Python](https://img.shields.io/pypi/pyversions/librenms-mcp?logo=python&logoColor=white)](https://pypi.org/project/librenms-mcp/)
+[![License](https://img.shields.io/github/license/mhajder/librenms-mcp)](https://github.com/mhajder/librenms-mcp/blob/main/LICENSE)
+
+[![Pre-commit Checks](https://github.com/mhajder/librenms-mcp/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/mhajder/librenms-mcp/actions/workflows/pre-commit.yml)
+[![Docker](https://img.shields.io/badge/ghcr.io-librenms--mcp-2496ED?logo=docker&logoColor=white)](https://github.com/mhajder/librenms-mcp/pkgs/container/librenms-mcp)
+[![MCP Registry](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fregistry.modelcontextprotocol.io%2Fv0.1%2Fservers%2Fio.github.mhajder%252Flibrenms-mcp%2Fversions%2Flatest&query=%24.server.version&label=MCP%20Registry&color=6E56CF)](https://registry.modelcontextprotocol.io/v0.1/servers/io.github.mhajder%2Flibrenms-mcp/versions/latest)
+
+[Installation](https://github.com/mhajder/librenms-mcp#-installation) · [Tools](https://github.com/mhajder/librenms-mcp#-available-tools) · [Configuration](https://github.com/mhajder/librenms-mcp#-configuration) · [Security](https://github.com/mhajder/librenms-mcp#-security--safety-features)
+
+</div>
 
 <!-- mcp-name: io.github.mhajder/librenms-mcp -->
 
 LibreNMS MCP Server is a Python-based Model Context Protocol (MCP) server designed to provide advanced, programmable access to LibreNMS network monitoring data and management features. It exposes a modern API for querying, automating, and integrating LibreNMS resources such as devices, ports, alerts, inventory, locations, logs, and more. The server supports both read and write operations, robust security features, and is suitable for integration with automation tools, dashboards, and custom network management workflows.
 
-## Features
+## ✨ Features
 
 ### Core Features
 
@@ -32,11 +48,11 @@ LibreNMS MCP Server is a Python-based Model Context Protocol (MCP) server design
 - Optional tool-search transform for large tool catalogs
 - Extensible with custom middlewares and utilities
 
-## Installation
+## 🚀 Installation
 
 ### Prerequisites
 
-- Python 3.11 to 3.14
+- Python 3.11 to 3.15
 - Access to a LibreNMS
 - Valid LibreNMS token with appropriate permissions
 
@@ -142,7 +158,7 @@ uv run ty check .
 uv run prek install
 ```
 
-## Configuration
+## 🔧 Configuration
 
 ### Environment Variables
 
@@ -220,7 +236,7 @@ MCP_TRANSPORT=stdio
 # MCP_HTTP_BEARER_TOKEN=
 ```
 
-## Available Tools
+## 🧰 Available Tools
 
 ### Device & Inventory Tools
 
@@ -241,6 +257,9 @@ MCP_TRANSPORT=stdio
 - `device_maintenance_status`: Get the maintenance status for a device
 - `device_vlans`: List VLANs for a device
 - `device_links`: List links for a device
+- `device_wireless_sensors`: List wireless sensors (frequency, clients, rssi, ...) with current values
+- `device_parents_set`: Set the dependency parents of a device (replaces the current set)
+- `device_parents_clear`: Remove dependency parents from a device
 - `device_eventlog_add`: Add an event log entry for a device
 - `inventory_device`: Get inventory for a device
 - `inventory_device_flat`: Get flat inventory for a device
@@ -383,7 +402,7 @@ this hint in the tool's error message.
 
 - Flexible filtering and search for all major resources (devices, ports, alerts, logs, inventory, etc.)
 
-## Pagination & Limit Support
+## 📄 Pagination & Limit Support
 
 To prevent overloading LLM contexts when querying large LibreNMS production instances, all list, search, and log tools support pagination.
 
@@ -398,7 +417,7 @@ To prevent overloading LLM contexts when querying large LibreNMS production inst
   - `count`: The number of items returned in the current page.
   - `total`: The total number of items available (for log tools, this is provided if returned by the LibreNMS API).
 
-## Error Responses
+## 🚨 Error Responses
 
 Every tool that returns JSON reports a failure in LibreNMS's own error shape,
 whether the error came from LibreNMS, from a check in this server, or from an
@@ -411,7 +430,7 @@ exception such as a timeout:
 Check `status == "error"`. Up to 1.11.3, exceptions were returned as
 `{"error": "..."}`; clients that looked for an `error` key need updating.
 
-## Security & Safety Features
+## 🔒 Security & Safety Features
 
 ### Read-Only Mode
 
@@ -635,16 +654,12 @@ curl http://localhost:8000/health
 
 For more information on FastMCP transports, see the [FastMCP documentation](https://gofastmcp.com/deployment/running-server#transport-protocols).
 
-## Contributing
+## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Run tests and ensure code quality (`uv run pytest && uv run ruff check .`)
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+Contributions are welcome. See [CONTRIBUTING.md](https://github.com/mhajder/librenms-mcp/blob/main/CONTRIBUTING.md) for the dev setup, checks and commit message format, and use the [issue templates](https://github.com/mhajder/librenms-mcp/issues/new/choose) for bugs and feature requests.
 
-## License
+Found a security problem? Please report it privately as described in [SECURITY.md](https://github.com/mhajder/librenms-mcp/blob/main/SECURITY.md).
 
-MIT License - see LICENSE file for details.
+## 📜 License
+
+MIT License - see [LICENSE](https://github.com/mhajder/librenms-mcp/blob/main/LICENSE) for details.
