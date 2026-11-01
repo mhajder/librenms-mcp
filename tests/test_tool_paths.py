@@ -1963,3 +1963,102 @@ async def test_alert_add_sends_payload_without_id(
     async with Client(mcp) as client:
         await client.call_tool(tool, {"payload": payload})
     assert [(r.method, r.url.path) for r in requests] == [("POST", path)]
+
+
+@pytest.mark.asyncio
+async def test_device_wireless_sensors_reads_the_wireless_sensors_route(server):
+    """Wireless values live in wireless_sensors, not sensors: a dedicated route."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path.endswith("/wireless-sensors"):
+            return httpx2.Response(
+                200,
+                json={
+                    "status": "ok",
+                    "wireless_sensors": [
+                        {"sensor_class": "frequency", "sensor_current": 5680}
+                    ],
+                },
+            )
+        return _librenms_default(request)
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool("device_wireless_sensors", {"hostname": "33"})
+    assert result.data["wireless_sensors"][0]["sensor_current"] == 5680
+    assert [r.url.path for r in requests] == ["/api/v0/devices/33/wireless-sensors"]
+
+
+@pytest.mark.asyncio
+async def test_device_wireless_sensors_passes_the_class(server):
+    """sensor_class becomes LibreNMS's "class" query parameter."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool(
+            "device_wireless_sensors", {"hostname": "33", "sensor_class": "clients"}
+        )
+    assert requests[0].url.params["class"] == "clients"
+
+
+@pytest.mark.asyncio
+async def test_device_wireless_sensors_rejects_unknown_devices(server):
+    """An unknown device gets "No wireless sensors found"; the lookup names it."""
+    mcp, requests, set_handler = server
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.url.path.endswith("/wireless-sensors"):
+            return httpx2.Response(
+                404, json={"status": "error", "message": "No wireless sensors found"}
+            )
+        return _unknown_device(request)
+
+    set_handler(handler)
+    async with Client(mcp) as client:
+        result = await client.call_tool("device_wireless_sensors", {"hostname": "typo"})
+    assert result.data["message"] == "Device typo does not exist"
+    assert [r.url.path for r in requests] == [
+        "/api/v0/devices/typo/wireless-sensors",
+        "/api/v0/devices/typo",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_device_parents_set_posts_parent_ids(server):
+    """POST /devices/{hostname}/parents with the comma-separated parent ids."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool(
+            "device_parents_set", {"hostname": "33", "parent_ids": "3,14"}
+        )
+    posts = [r for r in requests if r.method == "POST"]
+    assert [r.url.path for r in posts] == ["/api/v0/devices/33/parents"]
+    assert json.loads(posts[0].content) == {"parent_ids": "3,14"}
+
+
+@pytest.mark.asyncio
+async def test_device_parents_clear_deletes_some_or_all(server):
+    """DELETE /devices/{hostname}/parents, with parent_ids only when given."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        await client.call_tool(
+            "device_parents_clear", {"hostname": "33", "parent_ids": "3"}
+        )
+        await client.call_tool("device_parents_clear", {"hostname": "33"})
+    deletes = [r for r in requests if r.method == "DELETE"]
+    assert [r.url.path for r in deletes] == ["/api/v0/devices/33/parents"] * 2
+    assert json.loads(deletes[0].content) == {"parent_ids": "3"}
+    assert deletes[1].content == b""
+
+
+@pytest.mark.asyncio
+async def test_device_parents_clear_refuses_blank_parent_ids(server):
+    """A blank parent_ids would make LibreNMS remove every parent."""
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        for blank in ("", "  "):
+            result = await client.call_tool(
+                "device_parents_clear", {"hostname": "33", "parent_ids": blank}
+            )
+            assert result.data["status"] == "error"
+    assert requests == []

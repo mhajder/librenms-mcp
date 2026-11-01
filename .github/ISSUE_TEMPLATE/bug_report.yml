@@ -1,0 +1,82 @@
+name: Bug report
+description: Something in librenms-mcp does not work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove tokens, passwords and anything else private from what you paste below.
+        For security issues, use [private vulnerability reporting](https://github.com/mhajder/librenms-mcp/security/advisories/new) instead.
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Include the tool you called and the error or wrong result.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Call tool `...` with arguments `...`
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: librenms-mcp version
+      placeholder: e.g. 1.12.0
+    validations:
+      required: true
+  - type: input
+    id: product-version
+    attributes:
+      label: LibreNMS version
+      placeholder: "e.g. 25.10.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: Installation method
+      options:
+        - uvx / pip (PyPI)
+        - Docker image (ghcr.io)
+        - From source
+    validations:
+      required: true
+  - type: dropdown
+    id: transport
+    attributes:
+      label: MCP transport
+      options:
+        - stdio
+        - http (Streamable HTTP)
+        - sse
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      placeholder: e.g. Claude Desktop, Claude Code, Open WebUI
+  - type: textarea
+    id: config
+    attributes:
+      label: Relevant configuration
+      description: Non-secret settings only, such as READ_ONLY_MODE, DISABLED_TAGS or TOOL_SEARCH_ENABLED. Never paste tokens.
+      render: shell
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Run with LOG_LEVEL=DEBUG if you can, and redact anything private.
+      render: text

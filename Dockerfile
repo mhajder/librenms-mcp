@@ -1,4 +1,4 @@
-FROM python:3.14-alpine3.24 AS builder
+FROM python:3.15-alpine3.24 AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_LINK_MODE=copy
@@ -18,18 +18,19 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --all-extras --no-dev --no-editable
 
 
-FROM python:3.14-alpine3.24
+FROM python:3.15-alpine3.24
 LABEL org.opencontainers.image.title="LibreNMS MCP Server" \
       org.opencontainers.image.description="MCP server for LibreNMS management" \
       org.opencontainers.image.url="https://github.com/mhajder/librenms-mcp" \
+      org.opencontainers.image.documentation="https://github.com/mhajder/librenms-mcp#readme" \
+      org.opencontainers.image.authors="Mateusz Hajder" \
       org.opencontainers.image.source="https://github.com/mhajder/librenms-mcp" \
       org.opencontainers.image.vendor="Mateusz Hajder" \
       org.opencontainers.image.licenses="MIT" \
       io.modelcontextprotocol.server.name="io.github.mhajder/librenms-mcp"
 ENV PYTHONUNBUFFERED=1
 
-RUN apk add --no-cache ca-certificates \
-    && addgroup -g 10001 appuser \
+RUN addgroup -g 10001 appuser \
     && adduser -D -u 10001 -G appuser appuser
 
 COPY --from=builder /app/.venv /app/.venv

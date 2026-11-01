@@ -73,6 +73,11 @@
           "jsonpath": "$.packages[1].version"
         },
         {
+          "type": "yaml",
+          "path": "CITATION.cff",
+          "jsonpath": "$.version"
+        },
+        {
           "path": "uv.lock",
           "type": "toml",
           "jsonpath": "$.package[?(@.name.value=='librenms-mcp')].version"
