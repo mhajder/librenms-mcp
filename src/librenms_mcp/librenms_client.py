@@ -7,6 +7,8 @@ import httpx2
 
 from librenms_mcp.models import LibreNMSConfig
 from librenms_mcp.models import TransportConfig
+from librenms_mcp.redact import redact_credentials
+from librenms_mcp.redact import redact_text
 from librenms_mcp.utils import HTTP_TRANSPORTS
 from librenms_mcp.utils import env_bool
 from librenms_mcp.utils import env_int
@@ -120,6 +122,8 @@ def _http_error(
     url: str,
     body: Any,
     stored_body: Any = None,
+    *,
+    redact: bool = False,
 ) -> LibreNMSHTTPError:
     """Build the error for an unusable response; shared by request() and get_raw().
 
@@ -127,15 +131,16 @@ def _http_error(
     (not JSON, or a redirect, whose body is never a LibreNMS answer). It decides
     the message and from_librenms. ``stored_body`` is what the exception
     carries for callers, when that differs (request() stores the normalized
-    body); it defaults to ``body``.
+    body); it defaults to ``body``. ``redact`` scrubs credentials from response
+    text quoted in the message (REDACT_SNMP_CREDENTIALS).
     """
     from_librenms = _is_librenms_body(body)
     if resp.is_redirect:
         detail = _error_detail(resp)
     elif body is None:
-        detail = f"non-JSON response: {_error_detail(resp)}"
+        detail = f"non-JSON response: {_error_detail(resp, redact)}"
     else:
-        detail = _error_message(body) or _error_detail(resp)
+        detail = _error_message(body) or _error_detail(resp, redact)
     message = f"LibreNMS returned HTTP {resp.status_code} for {method} {url}: {detail}"
     if _encoded_slash_suspect(resp.status_code, from_librenms, url):
         message += f" ({ENCODED_SLASH_HINT})"
@@ -147,15 +152,20 @@ def _http_error(
     )
 
 
-def _error_detail(resp: httpx2.Response) -> str:
+def _error_detail(resp: httpx2.Response, redact: bool = False) -> str:
     """Describe an unusable response body for an error message.
 
     Redirects are not followed, so a 3xx (http -> https, an SSO proxy) is
     reported with its target, which points at the real misconfiguration.
+    With redact, credentials are scrubbed from the text before it is cut:
+    a device row's community falls within its first 200 characters.
     """
     if resp.is_redirect:
         return f"redirected to {resp.headers.get('location', '<unknown>')}"
-    return resp.text.strip()[:200] or "<empty body>"
+    text = resp.text.strip()
+    if redact:
+        text = redact_text(text)
+    return text[:200] or "<empty body>"
 
 
 class LibreNMSClient:
@@ -257,10 +267,13 @@ class LibreNMSClient:
             # Redirects are not followed; report the target even when the
             # redirect carries a JSON body.
             raise _http_error(resp, method, url, None)
+        redact = self.config.redact_snmp_credentials
         try:
             body = resp.json()
         except ValueError as e:
-            raise _http_error(resp, method, url, None) from e
+            raise _http_error(resp, method, url, None, redact=redact) from e
+        if redact:
+            redact_credentials(body)
         if resp.is_success:
             return body
         raw_body = body
@@ -271,7 +284,9 @@ class LibreNMSClient:
                 # has to travel in it, not only in an exception message.
                 body["hint"] = ENCODED_SLASH_HINT
         if raise_for_status:
-            raise _http_error(resp, method, url, raw_body, stored_body=body)
+            raise _http_error(
+                resp, method, url, raw_body, stored_body=body, redact=redact
+            )
         return body
 
     async def get(
@@ -310,7 +325,11 @@ class LibreNMSClient:
         if not resp.is_success:
             # Keep the LibreNMS JSON error message: it explains the failure
             # ("Device foo not found") where the bare status code does not.
-            raise _http_error(resp, "GET", url, _decode_error_body(resp))
+            redact = self.config.redact_snmp_credentials
+            body = _decode_error_body(resp)
+            if redact:
+                redact_credentials(body)
+            raise _http_error(resp, "GET", url, body, redact=redact)
         content_type = resp.headers.get("content-type", "application/octet-stream")
         return resp.content, content_type.split(";")[0].strip()
 
@@ -402,6 +421,7 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
         verify_ssl=env_bool("LIBRENMS_VERIFY_SSL", default=True),
         timeout=_env_setting("LIBRENMS_TIMEOUT", "timeout"),
         read_only_mode=env_bool("READ_ONLY_MODE", default=False),
+        redact_snmp_credentials=env_bool("REDACT_SNMP_CREDENTIALS", default=True),
         disabled_tags=disabled_tags,
         rate_limit_enabled=rate_limit_enabled,
         tool_search_enabled=tool_search_enabled,
