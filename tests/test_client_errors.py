@@ -1,6 +1,7 @@
 """Guards for how the client reports responses it cannot decode."""
 
 import os
+import socket
 import subprocess
 import sys
 
@@ -9,6 +10,7 @@ import pytest
 
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.librenms_client import LibreNMSHTTPError
+from librenms_mcp.librenms_client import LibreNMSTransportError
 from librenms_mcp.librenms_client import _build_path
 from librenms_mcp.librenms_client import get_librenms_config_from_env
 from librenms_mcp.librenms_client import get_transport_config_from_env
@@ -561,3 +563,117 @@ def test_numeric_settings_default_to_the_model_defaults(monkeypatch):
             "tool_search_max_results",
         ):
             assert getattr(config, field) == fields[field].default
+
+
+@pytest.fixture
+def hung_librenms(mock_client):
+    """A client pointed at a socket that accepts connections but never answers.
+
+    This is how a stuck LibreNMS (or proxy) looks: httpx2 then raises a
+    ReadTimeout whose message is empty.
+    """
+    with socket.socket() as sock:
+        sock.bind(("127.0.0.1", 0))
+        sock.listen()
+        client = mock_client(lambda _request: httpx2.Response(200))
+        client.client = httpx2.AsyncClient(
+            base_url=f"http://127.0.0.1:{sock.getsockname()[1]}/api/v0", timeout=0.2
+        )
+        yield client
+
+
+@pytest.mark.asyncio
+async def test_timeout_is_reported_not_as_an_empty_message(hung_librenms):
+    """Every tool returns str(error): a bare ReadTimeout used to give ''."""
+    with pytest.raises(
+        LibreNMSTransportError,
+        match=r"^Could not get an answer from LibreNMS for GET devices: ReadTimeout$",
+    ) as exc:
+        await hung_librenms.get("devices")
+    assert isinstance(exc.value.__cause__, httpx2.ReadTimeout)
+
+    await hung_librenms.close()
+
+
+@pytest.mark.asyncio
+async def test_get_raw_timeout_is_reported_not_as_an_empty_message(hung_librenms):
+    with pytest.raises(
+        LibreNMSTransportError,
+        match=r"for GET devices/sw1/device_bits: ReadTimeout$",
+    ):
+        await hung_librenms.get_raw("devices", "sw1", "device_bits")
+
+    await hung_librenms.close()
+
+
+@pytest.mark.asyncio
+async def test_connection_errors_keep_their_detail(mock_client):
+    def refuse(request: httpx2.Request) -> httpx2.Response:
+        raise httpx2.ConnectError("All connection attempts failed", request=request)
+
+    client = mock_client(refuse)
+
+    with pytest.raises(
+        LibreNMSTransportError,
+        match=(
+            r"^Could not get an answer from LibreNMS for DELETE devices/sw1: "
+            r"ConnectError: All connection attempts failed$"
+        ),
+    ):
+        await client.delete("devices", "sw1")
+
+    await client.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.usefixtures("mock_client")  # for its reset of the singleton
+async def test_client_is_built_from_the_config_and_reused():
+    """One pool for every tool: the token, TLS setting and timeout all apply."""
+    config = LibreNMSConfig(
+        librenms_url="https://nms.invalid/",
+        token="secret",
+        verify_ssl=False,
+        timeout=7,
+    )
+
+    async with LibreNMSClient(config) as client:
+        http = client.client
+        assert http is not None
+        assert http.headers["X-Auth-Token"] == "secret"
+        assert str(http.base_url) == "https://nms.invalid/api/v0/"
+        assert http.timeout.read == 7
+    # Leaving the context keeps the pool; a later config is ignored.
+    async with LibreNMSClient(LibreNMSConfig(librenms_url="x", token="y")) as again:
+        assert again is client
+        assert again.client is http
+
+    await client.close()
+    assert client.client is None
+    await client.close()  # closing twice is harmless
+
+
+@pytest.mark.usefixtures("mock_client")  # for its reset of the singleton
+def test_first_client_needs_a_config():
+    with pytest.raises(ValueError, match="Config must be provided"):
+        LibreNMSClient()
+
+
+@pytest.mark.asyncio
+async def test_requests_need_an_entered_client(mock_client):
+    client = mock_client(lambda _request: httpx2.Response(200))
+    await client.close()
+    with pytest.raises(RuntimeError, match="Client not initialized"):
+        await client.get("devices")
+    with pytest.raises(RuntimeError, match="Client not initialized"):
+        await client.get_raw("devices", "sw1", "device_bits")
+
+
+def test_disabled_tags_are_split_and_trimmed(monkeypatch):
+    monkeypatch.setenv("LIBRENMS_URL", "https://nms.invalid")
+    monkeypatch.setenv("LIBRENMS_TOKEN", "t")
+    monkeypatch.setenv("DISABLED_TAGS", " alert, ,bills ,alert-rules,")
+    assert get_librenms_config_from_env().disabled_tags == {
+        "alert",
+        "bills",
+        "alert-rules",
+    }

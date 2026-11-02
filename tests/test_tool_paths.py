@@ -2062,3 +2062,859 @@ async def test_device_parents_clear_refuses_blank_parent_ids(server):
             )
             assert result.data["status"] == "error"
     assert requests == []
+
+
+# (tool, args, method, path with query, JSON body): the request each tool sends
+# first. Tools that look the device up first, and the graph tools, are covered
+# separately below.
+TOOL_REQUESTS = [
+    ("alerts_get", {}, "GET", "/api/v0/alerts", None),
+    (
+        "alerts_get",
+        {"state": 1, "severity": "critical", "alert_rule": 3, "order": "ASC"},
+        "GET",
+        "/api/v0/alerts?state=1&severity=critical&alert_rule=3&order=ASC",
+        None,
+    ),
+    (
+        "alert_get_by_id",
+        {"alert_id": 5},
+        "GET",
+        "/api/v0/alerts/5?state=" + "%2C".join(str(s) for s in range(16)),
+        None,
+    ),
+    ("alert_acknowledge", {"alert_id": 5}, "PUT", "/api/v0/alerts/5", None),
+    (
+        "alert_acknowledge",
+        {"alert_id": 5, "note": "on it", "until_clear": False},
+        "PUT",
+        "/api/v0/alerts/5",
+        {"note": "on it", "until_clear": False},
+    ),
+    ("alert_unmute", {"alert_id": 5}, "PUT", "/api/v0/alerts/unmute/5", None),
+    ("alert_rules_list", {}, "GET", "/api/v0/rules", None),
+    ("alert_rule_get", {"rule_id": 3}, "GET", "/api/v0/rules/3", None),
+    (
+        "alert_rule_add",
+        {"payload": {"name": "r", "severity": "critical"}},
+        "POST",
+        "/api/v0/rules",
+        {"name": "r", "severity": "critical"},
+    ),
+    (
+        "alert_rule_edit",
+        {"payload": {"rule_id": 3, "name": "r"}},
+        "PUT",
+        "/api/v0/rules",
+        {"rule_id": 3, "name": "r"},
+    ),
+    ("alert_rule_delete", {"rule_id": 3}, "DELETE", "/api/v0/rules/3", None),
+    ("alert_templates_list", {}, "GET", "/api/v0/alert_templates", None),
+    (
+        "alert_template_get",
+        {"template_id": 2},
+        "GET",
+        "/api/v0/alert_templates/2",
+        None,
+    ),
+    (
+        "alert_template_create",
+        {"payload": {"name": "t"}},
+        "POST",
+        "/api/v0/alert_templates",
+        {"name": "t"},
+    ),
+    (
+        "alert_template_edit",
+        {"payload": {"template_id": 2, "name": "t"}},
+        "PUT",
+        "/api/v0/alert_templates",
+        {"template_id": 2, "name": "t"},
+    ),
+    ("bills_list", {}, "GET", "/api/v0/bills", None),
+    (
+        "bills_list",
+        {"period": "previous", "ref": "r1", "custid": "c1"},
+        "GET",
+        "/api/v0/bills?period=previous&ref=r1&custid=c1",
+        None,
+    ),
+    ("bill_get", {"bill_id": 4}, "GET", "/api/v0/bills/4", None),
+    (
+        "bill_graph_data",
+        {"bill_id": 4, "graph_type": "monthly"},
+        "GET",
+        "/api/v0/bills/4/graphdata/monthly",
+        None,
+    ),
+    ("bill_history", {"bill_id": 4}, "GET", "/api/v0/bills/4/history", None),
+    (
+        "bill_history_graph_data",
+        {"bill_id": 4, "history_id": 9, "graph_type": "hour"},
+        "GET",
+        "/api/v0/bills/4/history/9/graphdata/hour",
+        None,
+    ),
+    (
+        "bill_create_or_update",
+        {"payload": {"bill_name": "b", "ports": [5]}},
+        "POST",
+        "/api/v0/bills",
+        {"bill_name": "b", "ports": [5]},
+    ),
+    ("bill_delete", {"bill_id": 4}, "DELETE", "/api/v0/bills/4", None),
+    ("devices_list", {}, "GET", "/api/v0/devices", None),
+    (
+        "devices_list",
+        {"query": {"type": "os", "query": "linux"}},
+        "GET",
+        "/api/v0/devices?type=os&query=linux",
+        None,
+    ),
+    (
+        "device_add",
+        {"payload": {"hostname": "sw1", "community": "public"}},
+        "POST",
+        "/api/v0/devices",
+        {"hostname": "sw1", "community": "public"},
+    ),
+    ("device_get", {"hostname": "sw1"}, "GET", "/api/v0/devices/sw1", None),
+    ("device_delete", {"hostname": "sw1"}, "DELETE", "/api/v0/devices/sw1", None),
+    (
+        "device_update",
+        {"hostname": "sw1", "payload": {"notes": "n"}},
+        "PATCH",
+        "/api/v0/devices/sw1",
+        {"field": "notes", "data": "n"},
+    ),
+    (
+        "device_update",
+        {"hostname": "sw1", "payload": {"notes": "n", "ignore": 1}},
+        "PATCH",
+        "/api/v0/devices/sw1",
+        {"field": ["notes", "ignore"], "data": ["n", 1]},
+    ),
+    ("device_ports", {"hostname": "sw1"}, "GET", "/api/v0/devices/sw1/ports", None),
+    (
+        "device_ports",
+        {"hostname": "sw1", "columns": "port_id,ifName"},
+        "GET",
+        "/api/v0/devices/sw1/ports?columns=port_id%2CifName",
+        None,
+    ),
+    (
+        "device_ports_get",
+        {"hostname": "sw1", "ifname": "Gi1"},
+        "GET",
+        "/api/v0/devices/sw1/ports/Gi1",
+        None,
+    ),
+    (
+        "device_availability",
+        {"hostname": "sw1"},
+        "GET",
+        "/api/v0/devices/sw1/availability",
+        None,
+    ),
+    (
+        "device_outages",
+        {"hostname": "sw1"},
+        "GET",
+        "/api/v0/devices/sw1/outages",
+        None,
+    ),
+    (
+        "device_set_maintenance",
+        {"hostname": "sw1", "payload": {"duration": "02:00"}},
+        "POST",
+        "/api/v0/devices/sw1/maintenance",
+        {"duration": "02:00"},
+    ),
+    ("devicegroups_list", {}, "GET", "/api/v0/devicegroups", None),
+    (
+        "devicegroup_add",
+        {"payload": {"name": "core", "type": "static", "devices": [1]}},
+        "POST",
+        "/api/v0/devicegroups",
+        {"name": "core", "type": "static", "devices": [1]},
+    ),
+    (
+        "devicegroup_update",
+        {"name": "core", "payload": {"desc": "d"}},
+        "PATCH",
+        "/api/v0/devicegroups/core",
+        {"desc": "d"},
+    ),
+    (
+        "devicegroup_delete",
+        {"name": "core"},
+        "DELETE",
+        "/api/v0/devicegroups/core",
+        None,
+    ),
+    (
+        "devicegroup_devices",
+        {"name": "core"},
+        "GET",
+        "/api/v0/devicegroups/core",
+        None,
+    ),
+    (
+        "devicegroup_devices",
+        {"name": "core", "full": True},
+        "GET",
+        "/api/v0/devicegroups/core?full=1",
+        None,
+    ),
+    (
+        "devicegroup_set_maintenance",
+        {"name": "core", "payload": {"duration": "01:00"}},
+        "POST",
+        "/api/v0/devicegroups/core/maintenance",
+        {"duration": "01:00"},
+    ),
+    (
+        "devicegroup_add_devices",
+        {"name": "core", "payload": {"devices": [1, 2]}},
+        "POST",
+        "/api/v0/devicegroups/core/devices",
+        {"devices": [1, 2]},
+    ),
+    (
+        "devicegroup_remove_devices",
+        {"name": "core", "payload": {"devices": [2]}},
+        "DELETE",
+        "/api/v0/devicegroups/core/devices",
+        {"devices": [2]},
+    ),
+    (
+        "device_discover",
+        {"hostname": "sw1"},
+        "GET",
+        "/api/v0/devices/sw1/discover",
+        None,
+    ),
+    (
+        "device_rename",
+        {"hostname": "sw1", "new_hostname": "sw2"},
+        "PATCH",
+        "/api/v0/devices/sw1/rename/sw2",
+        None,
+    ),
+    (
+        "device_maintenance_status",
+        {"hostname": "sw1"},
+        "GET",
+        "/api/v0/devices/sw1/maintenance",
+        None,
+    ),
+    ("device_vlans", {"hostname": "sw1"}, "GET", "/api/v0/devices/sw1/vlans", None),
+    (
+        "device_eventlog_add",
+        {"hostname": "sw1", "payload": {"text": "t", "severity": 2}},
+        "POST",
+        "/api/v0/devices/sw1/eventlog",
+        {"text": "t", "severity": 2},
+    ),
+    ("device_fdb", {"hostname": "sw1"}, "GET", "/api/v0/devices/sw1/fdb", None),
+    ("device_nac", {"hostname": "sw1"}, "GET", "/api/v0/devices/sw1/nac", None),
+    (
+        "device_wireless_sensors",
+        {"hostname": "sw1"},
+        "GET",
+        "/api/v0/devices/sw1/wireless-sensors",
+        None,
+    ),
+    (
+        "device_parents_set",
+        {"hostname": "sw1", "parent_ids": "1,2"},
+        "POST",
+        "/api/v0/devices/sw1/parents",
+        {"parent_ids": "1,2"},
+    ),
+    (
+        "device_parents_clear",
+        {"hostname": "sw1"},
+        "DELETE",
+        "/api/v0/devices/sw1/parents",
+        None,
+    ),
+    (
+        "device_graphs_list",
+        {"hostname": "sw1"},
+        "GET",
+        "/api/v0/devices/sw1/graphs",
+        None,
+    ),
+    ("health_list", {"hostname": "sw1"}, "GET", "/api/v0/devices/sw1/health", None),
+    (
+        "health_by_type",
+        {"hostname": "sw1", "type": "temperature"},
+        "GET",
+        "/api/v0/devices/sw1/health/temperature",
+        None,
+    ),
+    (
+        "health_sensor_get",
+        {"hostname": "sw1", "type": "temperature", "sensor_id": 7},
+        "GET",
+        "/api/v0/devices/sw1/health/temperature/7",
+        None,
+    ),
+    ("sensors_list", {}, "GET", "/api/v0/resources/sensors", None),
+    ("inventory_device", {"hostname": "sw1"}, "GET", "/api/v0/inventory/sw1", None),
+    (
+        "inventory_device",
+        {
+            "hostname": "sw1",
+            "ent_physical_class": "module",
+            "ent_physical_contained_in": 0,
+        },
+        "GET",
+        "/api/v0/inventory/sw1?entPhysicalClass=module&entPhysicalContainedIn=0",
+        None,
+    ),
+    (
+        "inventory_device_flat",
+        {"hostname": "sw1"},
+        "GET",
+        "/api/v0/inventory/sw1/all",
+        None,
+    ),
+    ("locations_list", {}, "GET", "/api/v0/resources/locations", None),
+    (
+        "location_add",
+        {"payload": {"location": "DC1", "lat": 1.5, "lng": 2}},
+        "POST",
+        "/api/v0/locations",
+        {"location": "DC1", "lat": 1.5, "lng": 2},
+    ),
+    (
+        "location_delete",
+        {"location": "DC1"},
+        "DELETE",
+        "/api/v0/locations/DC1",
+        None,
+    ),
+    (
+        "location_edit",
+        {"location": "DC1", "payload": {"lat": 1.5}},
+        "PATCH",
+        "/api/v0/locations/DC1",
+        {"lat": 1.5},
+    ),
+    ("location_get", {"location": "DC1"}, "GET", "/api/v0/location/DC1", None),
+    (
+        "location_set_maintenance",
+        {"location": "DC1", "payload": {"duration": "02:00"}},
+        "POST",
+        "/api/v0/locations/DC1/maintenance",
+        {"duration": "02:00"},
+    ),
+    ("logs_eventlog", {}, "GET", "/api/v0/logs/eventlog?start=0&limit=100", None),
+    (
+        "logs_syslog",
+        {
+            "start": 10,
+            "limit": 5,
+            "from_ts": "1700000000",
+            "to_ts": "2024-01-02 00:00",
+            "sortorder": "ASC",
+        },
+        "GET",
+        "/api/v0/logs/syslog?start=10&limit=5&from=1700000000"
+        "&to=2024-01-02+00%3A00&sortorder=ASC",
+        None,
+    ),
+    ("logs_alertlog", {}, "GET", "/api/v0/logs/alertlog?start=0&limit=100", None),
+    ("logs_authlog", {}, "GET", "/api/v0/logs/authlog?start=0&limit=100", None),
+    (
+        "logs_syslogsink",
+        {"payload": [{"msg": "m", "host": "sw1"}]},
+        "POST",
+        "/api/v0/syslogsink",
+        [{"msg": "m", "host": "sw1"}],
+    ),
+    (
+        "arp_search",
+        {"query": "10.0.0.1"},
+        "GET",
+        "/api/v0/resources/ip/arp/10.0.0.1",
+        None,
+    ),
+    (
+        "bgp_sessions",
+        {
+            "asn": 65000,
+            "remote_asn": "65001",
+            "remote_address": "192.0.2.1",
+            "local_address": "192.0.2.2",
+            "bgp_descr": "%peer%",
+            "bgp_state": "established",
+            "bgp_adminstate": "start",
+            "bgp_family": 4,
+        },
+        "GET",
+        "/api/v0/bgp?asn=65000&remote_asn=65001&remote_address=192.0.2.1"
+        "&local_address=192.0.2.2&bgp_descr=%25peer%25&bgp_state=established"
+        "&bgp_adminstate=start&bgp_family=4",
+        None,
+    ),
+    ("bgp_session_get", {"bgp_id": 3}, "GET", "/api/v0/bgp/3", None),
+    (
+        "bgp_session_edit",
+        {"bgp_id": 3, "payload": {"bgp_descr": "d"}},
+        "POST",
+        "/api/v0/bgp/3",
+        {"bgp_descr": "d"},
+    ),
+    ("routing_ip_addresses", {}, "GET", "/api/v0/resources/ip/addresses", None),
+    ("switching_vlans", {}, "GET", "/api/v0/resources/vlans", None),
+    ("switching_links", {}, "GET", "/api/v0/resources/links", None),
+    (
+        "fdb_lookup",
+        {"mac": "aabbccddeeff"},
+        "GET",
+        "/api/v0/resources/fdb/aabbccddeeff",
+        None,
+    ),
+    ("ospf_list", {}, "GET", "/api/v0/ospf", None),
+    ("ospf_ports", {}, "GET", "/api/v0/ospf_ports", None),
+    ("vrf_list", {}, "GET", "/api/v0/routing/vrf", None),
+    ("nac_list", {}, "GET", "/api/v0/resources/nac", None),
+    (
+        "nac_list",
+        {"mac": "aabbccddeeff"},
+        "GET",
+        "/api/v0/resources/nac/aabbccddeeff",
+        None,
+    ),
+    ("oxidized_list", {}, "GET", "/api/v0/oxidized", None),
+    (
+        "oxidized_config_get",
+        {"hostname": "sw1"},
+        "GET",
+        "/api/v0/oxidized/config/sw1",
+        None,
+    ),
+    (
+        "oxidized_config_search",
+        {"search": "ip route"},
+        "GET",
+        "/api/v0/oxidized/config/search/ip%20route",
+        None,
+    ),
+    ("poller_group_get", {}, "GET", "/api/v0/poller_group", None),
+    ("port_security_list", {}, "GET", "/api/v0/port_security", None),
+    (
+        "port_security_device",
+        {"hostname": "sw1"},
+        "GET",
+        "/api/v0/port_security/device/sw1",
+        None,
+    ),
+    (
+        "port_security_port",
+        {"port_id": 5},
+        "GET",
+        "/api/v0/port_security/port/5",
+        None,
+    ),
+    ("ports_list", {}, "GET", "/api/v0/ports", None),
+    (
+        "ports_list",
+        {"query": {"columns": "port_id,ifAlias"}},
+        "GET",
+        "/api/v0/ports?columns=port_id%2CifAlias",
+        None,
+    ),
+    ("ports_search", {"search": "uplink"}, "GET", "/api/v0/ports/search/uplink", None),
+    (
+        "ports_search_field",
+        {"field": "ifAlias", "search": "uplink"},
+        "GET",
+        "/api/v0/ports/search/ifAlias/uplink",
+        None,
+    ),
+    (
+        "ports_search_mac",
+        {"mac": "aa:bb:cc:dd:ee:ff"},
+        "GET",
+        "/api/v0/ports/mac/aa%3Abb%3Acc%3Add%3Aee%3Aff",
+        None,
+    ),
+    ("port_get", {"port_id": 5}, "GET", "/api/v0/ports/5", None),
+    ("port_ip_info", {"port_id": 5}, "GET", "/api/v0/ports/5/ip", None),
+    ("port_transceiver", {"port_id": 5}, "GET", "/api/v0/ports/5/transceiver", None),
+    (
+        "port_description_get",
+        {"port_id": 5},
+        "GET",
+        "/api/v0/ports/5/description",
+        None,
+    ),
+    (
+        "port_description_update",
+        {"port_id": 5, "payload": {"description": "uplink"}},
+        "PATCH",
+        "/api/v0/ports/5/description",
+        {"description": "uplink"},
+    ),
+    ("port_groups_list", {}, "GET", "/api/v0/port_groups", None),
+    (
+        "port_group_add",
+        {"payload": {"name": "g", "desc": "d"}},
+        "POST",
+        "/api/v0/port_groups",
+        {"name": "g", "desc": "d"},
+    ),
+    ("port_group_list_ports", {"name": "g"}, "GET", "/api/v0/port_groups/g", None),
+    (
+        "port_group_assign",
+        {"port_group_id": 2, "payload": {"port_ids": [5]}},
+        "POST",
+        "/api/v0/port_groups/2/assign",
+        {"port_ids": [5]},
+    ),
+    (
+        "port_group_remove",
+        {"port_group_id": 2, "payload": {"port_ids": [5]}},
+        "POST",
+        "/api/v0/port_groups/2/remove",
+        {"port_ids": [5]},
+    ),
+    ("port_fdb", {"port_id": 5}, "GET", "/api/v0/ports/5/fdb", None),
+    ("services_list", {}, "GET", "/api/v0/services", None),
+    (
+        "services_list",
+        {"state": 2, "service_type": "http"},
+        "GET",
+        "/api/v0/services?state=2&type=http",
+        None,
+    ),
+    (
+        "services_for_device",
+        {"hostname": "sw1", "state": 0, "service_type": "ssh"},
+        "GET",
+        "/api/v0/services/sw1?state=0&type=ssh",
+        None,
+    ),
+    (
+        "service_edit",
+        {"service_id": 3, "payload": {"service_desc": "d"}},
+        "PATCH",
+        "/api/v0/services/3",
+        {"service_desc": "d"},
+    ),
+    ("service_delete", {"service_id": 3}, "DELETE", "/api/v0/services/3", None),
+    ("system_info", {}, "GET", "/api/v0/system", None),
+    ("ping", {}, "GET", "/api/v0/ping", None),
+]
+
+# Arguments that reach LibreNMS for the tools left out of TOOL_REQUESTS.
+OTHER_TOOL_ARGS = {
+    "device_links": {"hostname": "sw1"},
+    "service_add": {"hostname": "sw1", "payload": {"type": "http"}},
+    "device_graph": {"hostname": "sw1", "graph_type": "device_bits"},
+    "port_graph": {"hostname": "sw1", "ifname": "Gi1"},
+    "port_group_graph": {"port_ids": [5, 6]},
+    "bill_graph": {"bill_id": 4, "graph_type": "bits"},
+    "bill_history_graph": {"bill_id": 4, "history_id": 9, "graph_type": "day"},
+}
+IMAGE_TOOLS = {
+    "device_graph",
+    "port_graph",
+    "port_group_graph",
+    "bill_graph",
+    "bill_history_graph",
+}
+# One set of arguments per tool: its first (simplest) TOOL_REQUESTS entry.
+TOOL_ARGS = {
+    **{tool: args for tool, args, *_ in reversed(TOOL_REQUESTS)},
+    **OTHER_TOOL_ARGS,
+}
+
+
+def _sent(request: httpx2.Request) -> tuple[str, str, object]:
+    body = json.loads(request.content) if request.content else None
+    return request.method, request.url.raw_path.decode(), body
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(("tool", "args", "method", "path", "body"), TOOL_REQUESTS)
+async def test_tools_send_the_documented_request(
+    server, tool, args, method, path, body
+):
+    mcp, requests, _ = server
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, args)
+    assert _sent(requests[0]) == (method, path, body)
+    assert isinstance(result.data, dict)
+
+
+@pytest.mark.asyncio
+async def test_every_tool_is_exercised(tools_server):
+    """New tools must be added to the tables above, so they are tested too."""
+    assert {tool.name for tool in await tools_server.list_tools()} == set(TOOL_ARGS)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool", sorted(TOOL_ARGS))
+async def test_timeouts_are_reported_by_every_tool(server, tool):
+    """A ReadTimeout has an empty message; tools used to report just ''."""
+    mcp, requests, set_handler = server
+
+    def time_out(request: httpx2.Request) -> httpx2.Response:
+        raise httpx2.ReadTimeout("", request=request)
+
+    set_handler(time_out)
+    async with Client(mcp) as client:
+        if tool in IMAGE_TOOLS:
+            with pytest.raises(ToolError) as exc:
+                await client.call_tool(tool, TOOL_ARGS[tool])
+            message = str(exc.value)
+        else:
+            result = await client.call_tool(tool, TOOL_ARGS[tool])
+            assert result.data["status"] == "error"
+            message = result.data["message"]
+    method, path, _ = _sent(requests[0])
+    endpoint = path.removeprefix("/api/v0/").split("?")[0]
+    assert message.endswith(
+        f"Could not get an answer from LibreNMS for {method} {endpoint}: ReadTimeout"
+    )
+    assert len(requests) == 1
+
+
+def _list_answer(key: str | None, entries: list):
+    """Answer device lookups with a device, every other request with entries."""
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        parts = request.url.path.split("/")
+        if len(parts) == 5 and parts[3] == "devices":
+            return _librenms_default(request)
+        body = entries if key is None else {"status": "ok", key: entries}
+        return httpx2.Response(200, json=body)
+
+    return handler
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "key"),
+    [
+        ("alerts_get", "alerts"),
+        ("alert_rules_list", "rules"),
+        ("alert_templates_list", "alert_templates"),
+        ("bills_list", "bills"),
+        ("bill_history", "bill_history"),
+        ("devices_list", "devices"),
+        ("device_ports", "ports"),
+        ("device_outages", "outages"),
+        ("devicegroups_list", "groups"),
+        ("devicegroup_devices", "devices"),
+        ("device_vlans", "vlans"),
+        ("device_links", "links"),
+        ("device_fdb", "ports_fdb"),
+        ("device_nac", "ports_nac"),
+        ("health_list", "graphs"),
+        ("health_by_type", "graphs"),
+        ("sensors_list", "sensors"),
+        ("inventory_device", "inventory"),
+        ("inventory_device_flat", "inventory"),
+        ("locations_list", "locations"),
+        ("bgp_sessions", "bgp_sessions"),
+        ("routing_ip_addresses", "ip_addresses"),
+        ("switching_vlans", "vlans"),
+        ("switching_links", "links"),
+        ("ospf_list", "ospf"),
+        ("ospf_ports", "ospf_ports"),
+        ("vrf_list", "vrfs"),
+        ("nac_list", "nac"),
+        ("port_security_list", "port"),
+        ("port_security_device", "port"),
+        ("ports_list", "ports"),
+        ("ports_search", "ports"),
+        ("ports_search_field", "ports"),
+        ("ports_search_mac", "ports"),
+        ("port_groups_list", "groups"),
+        ("port_group_list_ports", "ports"),
+        ("port_fdb", "macs"),
+    ],
+)
+async def test_list_tools_page_through_the_librenms_list(server, tool, key):
+    mcp, _, set_handler = server
+    set_handler(_list_answer(key, [{"n": 1}, {"n": 2}, {"n": 3}]))
+    args = {**TOOL_ARGS[tool], "limit": 1, "offset": 1}
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, args)
+    assert result.data[key] == [{"n": 2}]
+    assert (result.data["count"], result.data["total"]) == (1, 3)
+    assert (result.data["limit"], result.data["offset"]) == (1, 1)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "args", "answer", "key"),
+    [
+        # Oxidized answers with bare lists, which are wrapped to be paged.
+        ("oxidized_list", {}, [{"n": 1}, {"n": 2}], "devices"),
+        ("oxidized_config_search", {"search": "acl"}, [{"n": 1}, {"n": 2}], "nodes"),
+        # Services come grouped per device; they are paged one by one.
+        (
+            "services_list",
+            {},
+            {"status": "ok", "services": [[{"n": 1}], [{"n": 2}]]},
+            "services",
+        ),
+        (
+            "services_for_device",
+            {"hostname": "sw1"},
+            {"status": "ok", "services": [[{"n": 1}, {"n": 2}]]},
+            "services",
+        ),
+    ],
+)
+async def test_list_answers_are_reshaped_before_paging(server, tool, args, answer, key):
+    mcp, _, set_handler = server
+    set_handler(lambda _r: httpx2.Response(200, json=answer))
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, {**args, "limit": 1, "offset": 1})
+    assert result.data[key] == [{"n": 2}]
+    assert result.data["total"] == 2
+
+
+@pytest.mark.asyncio
+async def test_oxidized_config_get_wraps_a_list_answer(server):
+    mcp, _, set_handler = server
+    set_handler(lambda _r: httpx2.Response(200, json=["hostname sw1", "!"]))
+    async with Client(mcp) as client:
+        result = await client.call_tool("oxidized_config_get", {"hostname": "sw1"})
+    assert result.data == {"configs": ["hostname sw1", "!"]}
+
+
+@pytest.mark.asyncio
+async def test_acknowledging_an_existing_alert_passes_the_answer_on(server):
+    mcp, _, set_handler = server
+    answer = {"status": "ok", "message": "Alert has been acknowledged"}
+    set_handler(lambda _r: httpx2.Response(200, json=answer))
+    async with Client(mcp) as client:
+        result = await client.call_tool("alert_acknowledge", {"alert_id": 5})
+    assert result.data == answer
+
+
+def _image_answer(_request: httpx2.Request) -> httpx2.Response:
+    return httpx2.Response(
+        200, content=b"\x89PNG", headers={"content-type": "image/png"}
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "args", "path"),
+    [
+        (
+            "device_graph",
+            {
+                "hostname": "sw1",
+                "graph_type": "device_bits",
+                "from_time": "-1w",
+                "to_time": "-1d",
+                "width": 800,
+                "height": 200,
+                "legend": False,
+            },
+            "/api/v0/devices/sw1/device_bits"
+            "?graph_type=png&from=-1w&to=-1d&width=800&height=200&legend=no",
+        ),
+        (
+            "port_graph",
+            {"hostname": "sw1", "ifname": "Gi0/1", "graph_type": "errors"},
+            "/api/v0/devices/sw1/ports/Gi0%2F1/port_errors?graph_type=png",
+        ),
+        (
+            "port_group_graph",
+            {"port_ids": [5, 6], "legend": True},
+            "/api/v0/portgroups/multiport/bits/5%2C6?graph_type=png&legend=yes",
+        ),
+    ],
+)
+async def test_graph_tools_return_the_rendered_image(server, tool, args, path):
+    mcp, requests, set_handler = server
+    set_handler(_image_answer)
+    async with Client(mcp) as client:
+        result = await client.call_tool(tool, args)
+    assert [r.url.raw_path.decode() for r in requests] == [path]
+    [image] = result.content
+    assert (image.type, image.mime_type) == ("image", "image/png")
+
+
+@pytest.mark.asyncio
+async def test_port_graph_does_not_fall_back_for_other_graph_types(server):
+    """Only 'bits' has a port-ID route; other types report the failure."""
+    mcp, requests, set_handler = server
+    set_handler(lambda _r: httpx2.Response(404, text="<html>Not Found</html>"))
+    async with Client(mcp) as client:
+        with pytest.raises(ToolError, match="Could not render the errors graph"):
+            await client.call_tool(
+                "port_graph",
+                {"hostname": "sw1", "ifname": "Te2/7", "graph_type": "errors"},
+            )
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_group_name_with_a_slash_is_refused(server):
+    mcp, requests, set_handler = server
+    set_handler(_device_groups((1, "core/a"), (2, "core/a")))
+    async with Client(mcp) as client:
+        result = await client.call_tool("devicegroup_delete", {"name": "core/a"})
+    assert result.data == {
+        "status": "error",
+        "message": "Device group name 'core/a' is ambiguous (IDs 1, 2); use the ID",
+    }
+    assert [r.method for r in requests] == ["GET"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool", sorted(IMAGE_TOOLS))
+async def test_graph_tools_report_a_json_answer_as_is(server, tool):
+    """The 'not an image' explanation is not wrapped in a second message."""
+    mcp, _, _ = server
+    async with Client(mcp) as client:
+        with pytest.raises(ToolError) as exc:
+            await client.call_tool(tool, TOOL_ARGS[tool])
+    assert str(exc.value).startswith(
+        "Expected an image from the LibreNMS graph endpoint, got 'application/json'"
+    )
+
+
+@pytest.mark.asyncio
+async def test_device_ports_get_reports_a_non_json_error(server):
+    """A 502 is not retried by port ID; its status and page are reported."""
+    mcp, requests, set_handler = server
+    set_handler(lambda _r: httpx2.Response(502, text="<html>Bad Gateway</html>"))
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "device_ports_get", {"hostname": "sw1", "ifname": "Gi1"}
+        )
+    assert result.data == {
+        "status": "error",
+        "message": "LibreNMS returned HTTP 502 for GET devices/sw1/ports/Gi1: "
+        "non-JSON response: <html>Bad Gateway</html>",
+    }
+    assert len(requests) == 1
+
+
+@pytest.mark.asyncio
+async def test_services_list_pages_an_unexpected_bare_list(server):
+    mcp, _, set_handler = server
+    set_handler(lambda _r: httpx2.Response(200, json=[{"n": 1}, {"n": 2}]))
+    async with Client(mcp) as client:
+        result = await client.call_tool("services_list", {"limit": 1})
+    assert result.data == {
+        "items": [{"n": 1}],
+        "count": 1,
+        "total": 2,
+        "limit": 1,
+        "offset": 0,
+    }
