@@ -137,6 +137,10 @@ docstring-code-line-length = "dynamic"
 known-first-party = ["librenms_mcp"]
 force-single-line = true
 
+[tool.coverage.report]
+# Entry-point guards only call main(), which the tests run directly.
+exclude_also = ['if __name__ == "__main__":']
+
 [tool.typos.default.extend-identifiers]
 TrUe = "TrUe"
 
