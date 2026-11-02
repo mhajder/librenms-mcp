@@ -23,6 +23,7 @@ from starlette.responses import PlainTextResponse
 from librenms_mcp.librenms_client import get_librenms_config_from_env
 from librenms_mcp.librenms_client import get_transport_config_from_env
 from librenms_mcp.sentry_init import init_sentry
+from librenms_mcp.short_names import ShortHostnameMiddleware
 from librenms_mcp.tools import register_tools
 from librenms_mcp.utils import HEALTH_PATH
 from librenms_mcp.utils import HTTP_TRANSPORTS
@@ -158,6 +159,10 @@ if LNMS_CONFIG.rate_limit_enabled:
             window_minutes=LNMS_CONFIG.rate_limit_window_minutes,
         )
     )
+
+if LNMS_CONFIG.resolve_short_hostnames:
+    logger.info("Short hostname resolution is enabled - applying middleware")
+    mcp.add_middleware(ShortHostnameMiddleware(LNMS_CONFIG))
 
 
 def main():

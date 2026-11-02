@@ -204,6 +204,12 @@ TOOL_SEARCH_STRATEGY=bm25
 # Maximum number of tools returned by search_tools
 TOOL_SEARCH_MAX_RESULTS=5
 
+# Short Device Names (Optional)
+# Set RESOLVE_SHORT_HOSTNAMES true to accept a device's short name ("rtr1") where
+# a hostname is expected, resolving it to the one device whose hostname, up to the
+# first dot, or whose sysName equals it (ignoring case)
+RESOLVE_SHORT_HOSTNAMES=false
+
 # Sentry Error Tracking (Optional)
 # Set SENTRY_DSN to enable error tracking and performance monitoring
 # SENTRY_DSN=https://your-key@o12345.ingest.us.sentry.io/6789
@@ -475,6 +481,27 @@ TOOL_SEARCH_MAX_RESULTS=5    # optional, default is 5
 `bm25` supports natural language queries, while `regex` uses a regex `pattern` input for deterministic matching.
 
 Tool search respects existing visibility controls (read-only mode and disabled tags).
+
+### Short Device Names
+
+LibreNMS matches devices by their full hostname or ID, so a call naming a
+device by its short name (`rtr1` for `rtr1.dc1.example.net`) answers
+"Device rtr1 does not exist". With
+
+```env
+RESOLVE_SHORT_HOSTNAMES=true
+```
+
+a bare short name in a tool's `hostname` or `device` argument is replaced by
+the stored hostname of the one device whose hostname, up to the first dot, or
+whose sysName equals it (ignoring case), so a device added by IP is found by
+its sysName. A device whose stored hostname is the name itself always wins,
+so calls that already worked keep working. Surrounding whitespace is ignored.
+This costs two devices searches (hostname and sysName) per call that uses a
+short name. Names containing a dot or a colon (FQDNs, IP addresses) and
+device IDs are sent as given, a name that matches no device is left for the
+tool to report, and a name that matches several devices is refused with a
+tool error listing the candidates.
 
 ### Rate Limiting
 
