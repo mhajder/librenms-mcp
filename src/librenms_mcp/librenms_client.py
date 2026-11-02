@@ -42,6 +42,26 @@ class LibreNMSHTTPError(RuntimeError):
         self.body = body
 
 
+class LibreNMSTransportError(RuntimeError):
+    """No usable answer came back: a timeout, a refused connection, a TLS error.
+
+    The httpx2 error is chained as the cause. Its own message can be empty (a
+    timeout's is), and tools report str(error), so the message always names
+    the request and the error type.
+    """
+
+
+def _transport_error(
+    error: httpx2.TransportError, method: str, url: str
+) -> LibreNMSTransportError:
+    """Describe a failed request so the message is never blank."""
+    detail = str(error).strip()
+    reason = f"{type(error).__name__}: {detail}" if detail else type(error).__name__
+    return LibreNMSTransportError(
+        f"Could not get an answer from LibreNMS for {method} {url}: {reason}"
+    )
+
+
 def _build_path(segments: tuple[str | int, ...]) -> str:
     """Join path parts into a LibreNMS API path, encoding each one.
 
@@ -252,7 +272,10 @@ class LibreNMSClient:
         """
         client = self._require_client()
         url = _build_path(segments)
-        resp = await client.request(method, url, params=params, json=data)
+        try:
+            resp = await client.request(method, url, params=params, json=data)
+        except httpx2.TransportError as e:
+            raise _transport_error(e, method, url) from e
         if resp.is_redirect:
             # Redirects are not followed; report the target even when the
             # redirect carries a JSON body.
@@ -306,7 +329,10 @@ class LibreNMSClient:
         """
         client = self._require_client()
         url = _build_path(segments)
-        resp = await client.get(url, params=params)
+        try:
+            resp = await client.get(url, params=params)
+        except httpx2.TransportError as e:
+            raise _transport_error(e, "GET", url) from e
         if not resp.is_success:
             # Keep the LibreNMS JSON error message: it explains the failure
             # ("Device foo not found") where the bare status code does not.
