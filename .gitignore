@@ -236,3 +236,4 @@ cache/
 .ruff_cache/
 
 .mcpregistry_*
+.mcp.json
