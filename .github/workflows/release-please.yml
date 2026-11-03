@@ -68,14 +68,18 @@ jobs:
 
       - name: Update Release with Docker Images
         if: steps.release.outputs.release_created == 'true'
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          tag_name: ${{ steps.release.outputs.tag_name }}
-          name: ${{ steps.release.outputs.tag_name }}
-          append_body: true
-          body: |
-            ## Docker Image
-            - `ghcr.io/${{ github.repository }}:${{ steps.release.outputs.version }}`
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.release.outputs.tag_name }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          # shellcheck disable=SC2016 # backticks are Markdown, not command substitution
+          {
+            gh release view "$TAG" --json body --jq .body
+            printf '\n## Docker Image\n- `ghcr.io/%s:%s`\n' "$GITHUB_REPOSITORY" "$VERSION"
+          } > release_notes.md
+          gh release edit "$TAG" --title "$TAG" --notes-file release_notes.md
 
       - name: Trigger publish workflows
         if: steps.release.outputs.release_created == 'true'
