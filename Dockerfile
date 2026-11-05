@@ -1,6 +1,8 @@
-FROM python:3.15-alpine3.24 AS builder
+FROM ghcr.io/astral-sh/uv:0.13.7@sha256:96f40d3904aad8d0bd010539001d36c8e2188b981e1334471a90c4a1d93bb490 AS uv
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+FROM python:3.15.2-alpine3.24@sha256:2b4b04f31a4a009c1fadf7ce9338471f288488199cf43dcd1af71f244ea550aa AS builder
+
+COPY --from=uv /uv /uvx /bin/
 ENV UV_LINK_MODE=copy
 ENV UV_PYTHON_DOWNLOADS=0
 
@@ -18,7 +20,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --all-extras --no-dev --no-editable
 
 
-FROM python:3.15-alpine3.24
+FROM python:3.15.2-alpine3.24@sha256:2b4b04f31a4a009c1fadf7ce9338471f288488199cf43dcd1af71f244ea550aa
 LABEL org.opencontainers.image.title="LibreNMS MCP Server" \
       org.opencontainers.image.description="MCP server for LibreNMS management" \
       org.opencontainers.image.url="https://github.com/mhajder/librenms-mcp" \

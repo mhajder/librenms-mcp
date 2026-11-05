@@ -17,3 +17,11 @@ updates:
         dependency-type: "production"
       uv-dev-dependencies:
         dependency-type: "development"
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    groups:
+      docker:
+        patterns:
+          - "*"
