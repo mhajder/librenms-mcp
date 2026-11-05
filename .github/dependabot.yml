@@ -19,6 +19,9 @@ updates:
         dependency-type: "development"
   - package-ecosystem: "docker"
     directory: "/"
+    ignore:
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
     schedule:
       interval: "daily"
     groups:
