@@ -48,7 +48,7 @@ repos:
 
       - id: local-ty-check
         name: ty check
-        entry: uv run ty check . --ignore unresolved-import
+        entry: uv run ty check .
         language: system
         pass_filenames: false
         always_run: true

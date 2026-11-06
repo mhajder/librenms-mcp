@@ -50,7 +50,7 @@ dev = [
     "pytest-asyncio>=1.3.0",
     "pytest-cov>=7.0.0",
     "ruff>=0.14.14",
-    "ty>=0.0.17",
+    "ty>=0.0.98",
     "typos>=1.48.0",
 ]
 
@@ -140,6 +140,9 @@ force-single-line = true
 [tool.coverage.report]
 # Entry-point guards only call main(), which the tests run directly.
 exclude_also = ['if __name__ == "__main__":']
+
+[tool.ty.environment]
+python-platform = "all"
 
 [tool.typos.default.extend-identifiers]
 TrUe = "TrUe"
