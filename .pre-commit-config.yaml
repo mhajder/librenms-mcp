@@ -48,7 +48,7 @@ repos:
 
       - id: local-ty-check
         name: ty check
-        entry: uv run --all-extras ty check .
+        entry: uv run --all-extras ty check
         language: system
         pass_filenames: false
         always_run: true
