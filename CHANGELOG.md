@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.13.0](https://github.com/mhajder/librenms-mcp/compare/v1.12.1...v1.13.0) (2026-11-07)
+
+
+### 🚀 Features
+
+* **tools:** add device_wireless_sensors, device_parents_set and device_parents_clear ([#210](https://github.com/mhajder/librenms-mcp/issues/210)) ([8a65683](https://github.com/mhajder/librenms-mcp/commit/8a65683f0d2e8f4390681967eba4f85d49c0ba5f))
+* **tools:** resolve short device names to their hostname ([#188](https://github.com/mhajder/librenms-mcp/issues/188)) ([1b92efc](https://github.com/mhajder/librenms-mcp/commit/1b92efc801be8c69dd02f77546bbab3965ea2858))
+
+
+### 🐛 Bug Fixes
+
+* **client:** redact SNMP credentials from API responses ([#189](https://github.com/mhajder/librenms-mcp/issues/189)) ([7eff418](https://github.com/mhajder/librenms-mcp/commit/7eff418b5c97767be232593aa16c714382208286))
+* **tools:** tag device_rename admin ([#212](https://github.com/mhajder/librenms-mcp/issues/212)) ([8a74026](https://github.com/mhajder/librenms-mcp/commit/8a74026c698fc9fcc56bd726f707946adf4df88c))
+
+
+### 🧩 CI
+
+* pin actions to commit SHAs at latest versions ([#215](https://github.com/mhajder/librenms-mcp/issues/215)) ([55290ee](https://github.com/mhajder/librenms-mcp/commit/55290ee79064115db86b910a80d6b9cfd51f4508))
+* queue release runs instead of cancelling them ([1dada17](https://github.com/mhajder/librenms-mcp/commit/1dada171604d5fb7041bc0b40c7cb1c38b11e381))
+* replace softprops/action-gh-release with the gh CLI ([f8c0781](https://github.com/mhajder/librenms-mcp/commit/f8c078199abc8fc9d75cd5a45705ed28814ae6f6))
+
+
+### 📦 Build
+
+* **deps:** bump ty to 0.0.98 and type check for all platforms ([6764041](https://github.com/mhajder/librenms-mcp/commit/676404149d20eb352c1b19c1c3377d817240fa37))
+* **deps:** raise minimum versions of dev tools and vulnerable dependencies ([0129bc1](https://github.com/mhajder/librenms-mcp/commit/0129bc1a74068b61389912c49b09eacf394b9148))
+* **deps:** stop Dependabot proposing Python pre-release and minor bumps ([15a9377](https://github.com/mhajder/librenms-mcp/commit/15a937744edbe45594e3316068fe7f2cf7f36039))
+* **docker:** pin base images by version and digest and update them with Dependabot ([2869ef5](https://github.com/mhajder/librenms-mcp/commit/2869ef5b16ee3b9b9a6d37785f50a33a5ab9aace))
+* drop redundant path from ty check hook ([884547b](https://github.com/mhajder/librenms-mcp/commit/884547b126b29e2c401cbb881b5594175621b378))
+* install optional extras for ty check in pre-commit hook ([92edb92](https://github.com/mhajder/librenms-mcp/commit/92edb92b9ef308692ca82c5a5d47d17fe0b8e905))
+
+
+### 🧪 Tests
+
+* raise line coverage to 99.9% and fix empty timeout errors ([#218](https://github.com/mhajder/librenms-mcp/issues/218)) ([692f1de](https://github.com/mhajder/librenms-mcp/commit/692f1de6e6e8adce465f39d6b14a765a9665f111))
+
 ## [1.12.1](https://github.com/mhajder/librenms-mcp/compare/v1.12.0...v1.12.1) (2026-10-23)
 
 
