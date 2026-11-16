@@ -277,6 +277,13 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
                 description="Comma-separated list of columns to return (e.g., 'port_id,ifName,ifAlias,ifOperStatus')",
             ),
         ] = None,
+        with_vlans: Annotated[
+            bool,
+            Field(
+                default=False,
+                description="Add each port's VLAN memberships under 'vlans'",
+            ),
+        ] = False,
         limit: Annotated[
             int,
             Field(
@@ -300,6 +307,7 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         Args:
             hostname (str): Device hostname or ID.
             columns (str, optional): Comma-separated columns to return.
+            with_vlans (bool): Add each port's VLAN memberships.
             limit (int): Maximum number of results to return.
             offset (int): Number of results to skip.
 
@@ -309,6 +317,8 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
         params: dict[str, Any] = {}
         if columns is not None:
             params["columns"] = columns
+        if with_vlans:
+            params["with"] = "vlans"
 
         try:
             await ctx.info(f"Listing ports for {hostname}...")
@@ -327,6 +337,66 @@ Valid type values: all, active, ignored, up, down, disabled, os, mac, ipv4, ipv6
 
         except Exception as e:
             await ctx.error(f"Error listing ports for {hostname}: {e!s}")
+            return error_body(str(e))
+
+    @mcp.tool(
+        tags={"librenms", "devices", "read-only"},
+        annotations={
+            "readOnlyHint": True,
+            "destructiveHint": False,
+            "idempotentHint": True,
+        },
+    )
+    async def device_port_stack(
+        ctx: Context,
+        hostname: Annotated[str, Field(description="Device hostname or ID")],
+        limit: Annotated[
+            int,
+            Field(
+                default=100,
+                description="Maximum number of results to return",
+                ge=1,
+            ),
+        ] = 100,
+        offset: Annotated[
+            int,
+            Field(
+                default=0,
+                description="Number of results to skip (offset) for pagination",
+                ge=0,
+            ),
+        ] = 0,
+    ) -> dict:
+        """
+        List a device's port stack (ifStackTable) from LibreNMS, such as which
+        physical ports belong to a port-channel.
+
+        Each mapping pairs a high_port_id with a low_port_id. Which side is the
+        aggregate depends on the vendor, so look up both ports before naming one.
+
+        Args:
+            hostname (str): Device hostname or ID.
+            limit (int): Maximum number of results to return.
+            offset (int): Number of results to skip.
+
+        Returns:
+            dict: The JSON response from the API.
+        """
+        try:
+            await ctx.info(f"Listing port stack for {hostname}...")
+
+            async with LibreNMSClient(config) as client:
+                # An unknown device gets an empty list, as if it had no stack.
+                result = await device_error_if_empty(
+                    client,
+                    hostname,
+                    await client.get("devices", hostname, "port_stack"),
+                    "mappings",
+                )
+            return paginate_list(result, limit, offset, key="mappings")
+
+        except Exception as e:
+            await ctx.error(f"Error listing port stack for {hostname}: {e!s}")
             return error_body(str(e))
 
     @mcp.tool(

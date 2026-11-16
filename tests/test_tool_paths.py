@@ -1051,6 +1051,12 @@ def _unknown_device_without_data(key: str):
         ),
         ("device_outages", {}, "outages", "/api/v0/devices/typo/outages"),
         ("device_ports", {}, "ports", "/api/v0/devices/typo/ports"),
+        (
+            "device_port_stack",
+            {},
+            "mappings",
+            "/api/v0/devices/typo/port_stack",
+        ),
         ("health_list", {}, "graphs", "/api/v0/devices/typo/health"),
         (
             "health_by_type",
@@ -1086,6 +1092,7 @@ async def test_device_scoped_tools_reject_unknown_devices(
     [
         ("device_outages", {}, "outages"),
         ("device_ports", {}, "ports"),
+        ("device_port_stack", {}, "mappings"),
         ("health_list", {}, "graphs"),
         ("inventory_device", {}, "inventory"),
         ("port_security_device", {}, "port"),
@@ -2203,6 +2210,27 @@ TOOL_REQUESTS = [
         None,
     ),
     (
+        "device_ports",
+        {"hostname": "sw1", "with_vlans": True},
+        "GET",
+        "/api/v0/devices/sw1/ports?with=vlans",
+        None,
+    ),
+    (
+        "device_ports",
+        {"hostname": "sw1", "columns": "port_id,ifName", "with_vlans": True},
+        "GET",
+        "/api/v0/devices/sw1/ports?columns=port_id%2CifName&with=vlans",
+        None,
+    ),
+    (
+        "device_port_stack",
+        {"hostname": "sw1"},
+        "GET",
+        "/api/v0/devices/sw1/port_stack",
+        None,
+    ),
+    (
         "device_ports_get",
         {"hostname": "sw1", "ifname": "Gi1"},
         "GET",
@@ -2544,6 +2572,13 @@ TOOL_REQUESTS = [
         None,
     ),
     ("port_get", {"port_id": 5}, "GET", "/api/v0/ports/5", None),
+    (
+        "port_get",
+        {"port_id": 5, "with_vlans": True},
+        "GET",
+        "/api/v0/ports/5?with=vlans",
+        None,
+    ),
     ("port_ip_info", {"port_id": 5}, "GET", "/api/v0/ports/5/ip", None),
     ("port_transceiver", {"port_id": 5}, "GET", "/api/v0/ports/5/transceiver", None),
     (
@@ -2709,6 +2744,7 @@ def _list_answer(key: str | None, entries: list):
         ("bill_history", "bill_history"),
         ("devices_list", "devices"),
         ("device_ports", "ports"),
+        ("device_port_stack", "mappings"),
         ("device_outages", "outages"),
         ("devicegroups_list", "groups"),
         ("devicegroup_devices", "devices"),

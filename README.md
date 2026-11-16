@@ -250,8 +250,9 @@ MCP_TRANSPORT=stdio
 - `device_add`: Add a new device
 - `device_update`: Update device metadata
 - `device_delete`: Remove a device
-- `device_ports`: List all ports for a device
+- `device_ports`: List all ports for a device (`with_vlans` adds each port's VLANs)
 - `device_ports_get`: Get details for a specific port on a device
+- `device_port_stack`: List the port stack for a device, such as port-channel members
 - `device_fdb`: List the forwarding database (learned MACs) for a device
 - `device_nac`: List network access control (802.1X / MAB) sessions on a device
 - `device_availability`: Get device availability
@@ -289,7 +290,7 @@ MCP_TRANSPORT=stdio
 - `ports_search`: Search ports (general search)
 - `ports_search_field`: Search ports by a specific field
 - `ports_search_mac`: Search ports by MAC address
-- `port_get`: Get details for a specific port
+- `port_get`: Get details for a specific port (`with_vlans` adds its VLANs)
 - `port_fdb`: List MAC addresses learned on a port
 - `port_ip_info`: Get IP address information for a port
 - `port_transceiver`: Get transceiver information for a port
