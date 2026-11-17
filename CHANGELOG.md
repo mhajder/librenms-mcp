@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.14.0](https://github.com/mhajder/librenms-mcp/compare/v1.13.0...v1.14.0) (2026-11-17)
+
+
+### 🚀 Features
+
+* **tools:** add device_port_stack, and VLANs on device_ports and port_get ([#235](https://github.com/mhajder/librenms-mcp/issues/235)) ([817809b](https://github.com/mhajder/librenms-mcp/commit/817809b8ddd1df0b42ebff3184e72dd34f830cce))
+
 ## [1.13.0](https://github.com/mhajder/librenms-mcp/compare/v1.12.1...v1.13.0) (2026-11-07)
 
 
