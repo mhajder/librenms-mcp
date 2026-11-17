@@ -308,22 +308,34 @@ Available columns: port_id, device_id, ifDescr, ifName, ifAlias, ifType, ifSpeed
             "idempotentHint": True,
         },
     )
-    async def port_get(port_id: Annotated[int, Field(ge=1)], ctx: Context) -> dict:
+    async def port_get(
+        port_id: Annotated[int, Field(ge=1)],
+        ctx: Context,
+        with_vlans: Annotated[
+            bool,
+            Field(
+                default=False,
+                description="Add the port's VLAN memberships under 'vlans'",
+            ),
+        ] = False,
+    ) -> dict:
         """
         Get port info from LibreNMS by port ID.
 
         Args:
             port_id (int): Port ID.
+            with_vlans (bool): Add the port's VLAN memberships.
 
         Returns:
             dict: The JSON response from the API.
         """
+        params = {"with": "vlans"} if with_vlans else None
         try:
             await ctx.info(f"Getting port {port_id}...")
 
             async with LibreNMSClient(config) as client:
                 return not_found_if_empty(
-                    await client.get("ports", port_id),
+                    await client.get("ports", port_id, params=params),
                     "port",
                     f"Port {port_id} does not exist",
                 )
