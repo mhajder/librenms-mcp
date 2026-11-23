@@ -71,6 +71,13 @@ def test_to_image_rejects_non_image():
         _to_image(b'{"status": "error"}', "application/json")
 
 
+@pytest.mark.parametrize("content_type", ["image/png", "image/svg+xml"])
+def test_to_image_rejects_empty_data(content_type):
+    # HTTP 200 with an image MIME type does not prove LibreNMS rendered a graph.
+    with pytest.raises(ToolError, match=r"empty.*image"):
+        _to_image(b"", content_type)
+
+
 class _FakeClient:
     """Minimal stand-in exposing only the get() used by _resolve_port_id.
 
