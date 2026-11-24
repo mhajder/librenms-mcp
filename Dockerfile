@@ -5,6 +5,8 @@ FROM python:3.15.2-alpine3.24@sha256:2b4b04f31a4a009c1fadf7ce9338471f288488199cf
 COPY --from=uv /uv /uvx /bin/
 ENV UV_LINK_MODE=copy
 ENV UV_PYTHON_DOWNLOADS=0
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_NO_PROGRESS=1
 
 WORKDIR /app
 
@@ -32,7 +34,17 @@ LABEL org.opencontainers.image.title="LibreNMS MCP Server" \
       io.modelcontextprotocol.server.name="io.github.mhajder/librenms-mcp"
 ENV PYTHONUNBUFFERED=1
 
-RUN addgroup -g 10001 appuser \
+RUN apk upgrade --no-cache \
+    && python -m pip uninstall --root-user-action=ignore -y pip \
+    && rm -rf /usr/local/lib/python3.*/ensurepip \
+              /usr/local/lib/python3.*/idlelib \
+              /usr/local/lib/python3.*/tkinter \
+              /usr/local/lib/python3.*/turtledemo \
+              /usr/local/include \
+              /usr/local/bin/idle* /usr/local/bin/pydoc* /usr/local/bin/python*-config \
+    && apk add --no-cache ca-certificates-bundle \
+    && apk del --no-cache apk-tools \
+    && addgroup -g 10001 appuser \
     && adduser -D -u 10001 -G appuser appuser
 
 COPY --from=builder /app/.venv /app/.venv
