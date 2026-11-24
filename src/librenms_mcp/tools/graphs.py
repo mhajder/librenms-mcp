@@ -123,6 +123,11 @@ def _to_image(data: bytes, content_type: str) -> Image:
             f"Expected an image from the LibreNMS graph endpoint, got '{content_type}'. "
             "This usually means LibreNMS returned a JSON error instead of rendering the graph."
         )
+    if not data:
+        raise ToolError(
+            "LibreNMS returned an empty (0-byte) image for this graph. "
+            "The underlying RRD data may not exist for this port or metric."
+        )
     return Image(data=data, format=content_type.removeprefix("image/"))
 
 
