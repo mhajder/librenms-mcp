@@ -39,7 +39,7 @@ dependencies = [
 
 [project.optional-dependencies]
 sentry = [
-    "sentry-sdk>=2.43.0",
+    "sentry-sdk>=2.43.0,<3",
 ]
 
 [dependency-groups]
