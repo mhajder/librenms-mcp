@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 import httpx2
 import pytest
 from fastmcp import Client
-from fastmcp import FastMCP
 
 from librenms_mcp.librenms_client import LibreNMSClient
 from librenms_mcp.librenms_client import LibreNMSHTTPError
@@ -15,7 +14,6 @@ from librenms_mcp.models import LibreNMSConfig
 from librenms_mcp.redact import REDACTED
 from librenms_mcp.redact import redact_credentials
 from librenms_mcp.redact import redact_text
-from librenms_mcp.tools import register_tools
 
 CONFIG = LibreNMSConfig(librenms_url="https://nms.invalid", token="t")
 OFF = CONFIG.model_copy(update={"redact_snmp_credentials": False})
@@ -62,18 +60,6 @@ async def _librenms(handler, config: LibreNMSConfig = CONFIG):
         await client.close()
         LibreNMSClient._instance = None
         LibreNMSClient._initialized = False
-
-
-@pytest.fixture(scope="module")
-def tools_server() -> FastMCP:
-    """Register every tool once for the module (about half a second each time).
-
-    Redaction reads the client singleton's config, so one server serves both
-    settings.
-    """
-    mcp = FastMCP("test")
-    register_tools(mcp, CONFIG)
-    return mcp
 
 
 def test_redacts_device_credentials_in_place_and_keeps_unset_ones():

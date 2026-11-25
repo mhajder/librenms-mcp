@@ -52,13 +52,18 @@ def load_server(monkeypatch):
     monkeypatch.setattr(dotenv, "load_dotenv", lambda *_args, **_kwargs: False)
     original = sys.modules.get(MODULE)
 
-    def factory(**env: str):
+    def factory(*, register_tools: bool = True, **env: str):
         env.setdefault("LIBRENMS_URL", "https://nms.invalid")
         env.setdefault("LIBRENMS_TOKEN", "t")
         for name, value in env.items():
             monkeypatch.setenv(name, value)
         sys.modules.pop(MODULE, None)
-        module = importlib.import_module(MODULE)
+        if register_tools:
+            module = importlib.import_module(MODULE)
+        else:
+            with monkeypatch.context() as m:
+                m.setattr("librenms_mcp.tools.register_tools", lambda *_a, **_kw: None)
+                module = importlib.import_module(MODULE)
         monkeypatch.setattr(module.mcp, "run", MagicMock())
         return module
 
@@ -75,7 +80,7 @@ async def tool_names(module) -> set[str]:
 
 @pytest.mark.asyncio
 async def test_health_route_answers_ok(load_server):
-    server = load_server()
+    server = load_server(register_tools=False)
 
     response = await server.health(MagicMock())
 
@@ -152,7 +157,7 @@ async def test_tool_search_replaces_the_tool_list(
 
 
 def test_tool_search_is_off_by_default(load_server):
-    server = load_server()
+    server = load_server(register_tools=False)
 
     assert not any(
         isinstance(t, BM25SearchTransform | RegexSearchTransform)
@@ -163,6 +168,7 @@ def test_tool_search_is_off_by_default(load_server):
 def test_rate_limiting_adds_middleware(load_server, caplog):
     caplog.set_level(logging.INFO)
     server = load_server(
+        register_tools=False,
         RATE_LIMIT_ENABLED="true",
         RATE_LIMIT_MAX_REQUESTS="5",
         RATE_LIMIT_WINDOW_MINUTES="2",
@@ -178,7 +184,7 @@ def test_rate_limiting_adds_middleware(load_server, caplog):
 
 
 def test_rate_limiting_is_off_by_default(load_server):
-    server = load_server()
+    server = load_server(register_tools=False)
 
     assert not any(
         isinstance(m, SlidingWindowRateLimitingMiddleware)
@@ -187,7 +193,7 @@ def test_rate_limiting_is_off_by_default(load_server):
 
 
 def test_unknown_log_level_falls_back_to_info(load_server, caplog):
-    load_server(LOG_LEVEL="chatty")
+    load_server(register_tools=False, LOG_LEVEL="chatty")
 
     assert "Unknown LOG_LEVEL 'CHATTY' - falling back to INFO" in caplog.text
 
@@ -195,7 +201,7 @@ def test_unknown_log_level_falls_back_to_info(load_server, caplog):
 @pytest.mark.parametrize("level", [" debug ", "", "   "])
 def test_lowercase_or_blank_log_level_is_accepted(load_server, caplog, level):
     """Blank means unset (INFO), as for every other setting: no warning."""
-    load_server(LOG_LEVEL=level)
+    load_server(register_tools=False, LOG_LEVEL=level)
 
     assert "Unknown LOG_LEVEL" not in caplog.text
 
@@ -209,7 +215,7 @@ def test_version_comes_from_the_package_metadata(load_server, monkeypatch):
 
     monkeypatch.setattr(importlib.metadata, "version", version)
 
-    server = load_server()
+    server = load_server(register_tools=False)
 
     # The distribution name from pyproject.toml, or the lookup always fails.
     assert asked == ["librenms-mcp"]
@@ -223,7 +229,7 @@ def test_version_falls_back_when_package_is_not_installed(load_server, monkeypat
 
     monkeypatch.setattr(importlib.metadata, "version", missing)
 
-    assert load_server().__version__ == "0.0.1"
+    assert load_server(register_tools=False).__version__ == "0.0.1"
 
 
 @pytest.mark.parametrize(
@@ -239,13 +245,13 @@ def test_version_falls_back_when_package_is_not_installed(load_server, monkeypat
 )
 def test_invalid_configuration_is_logged_and_raised(load_server, caplog, env, message):
     with pytest.raises(ValueError, match=message):
-        load_server(**env)
+        load_server(register_tools=False, **env)
 
     assert f"Invalid configuration: {message}" in caplog.text
 
 
 def test_bearer_token_enables_auth(load_server):
-    auth = load_server(MCP_HTTP_BEARER_TOKEN=" secret ").mcp.auth
+    auth = load_server(register_tools=False, MCP_HTTP_BEARER_TOKEN=" secret ").mcp.auth
 
     assert isinstance(auth, StaticTokenVerifier)
     assert auth.tokens == {
@@ -257,7 +263,7 @@ def test_bearer_token_enables_auth(load_server):
 def test_main_runs_stdio_by_default(load_server, caplog, transport):
     caplog.set_level(logging.INFO)
     env = {} if transport is None else {"MCP_TRANSPORT": transport}
-    server = load_server(**env)
+    server = load_server(register_tools=False, **env)
 
     server.main()
 
@@ -280,6 +286,7 @@ def test_main_runs_http_transports_on_the_configured_address(
 ):
     caplog.set_level(logging.INFO)
     server = load_server(
+        register_tools=False,
         MCP_TRANSPORT=transport,
         MCP_HTTP_HOST="[::1]",
         MCP_HTTP_PORT="9001",
@@ -297,7 +304,7 @@ def test_main_runs_http_transports_on_the_configured_address(
 @pytest.mark.parametrize("transport", ["http", "sse"])
 def test_main_warns_when_http_runs_without_a_token(load_server, caplog, transport):
     caplog.set_level(logging.INFO)
-    server = load_server(MCP_TRANSPORT=transport)
+    server = load_server(register_tools=False, MCP_TRANSPORT=transport)
 
     server.main()
 
@@ -309,7 +316,7 @@ def test_main_warns_when_http_runs_without_a_token(load_server, caplog, transpor
 
 
 def test_main_rejects_an_unknown_transport(load_server, caplog):
-    server = load_server(MCP_TRANSPORT="websocket")
+    server = load_server(register_tools=False, MCP_TRANSPORT="websocket")
 
     with pytest.raises(SystemExit) as exc:
         server.main()

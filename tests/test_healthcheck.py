@@ -64,7 +64,7 @@ def hung_port(monkeypatch) -> Iterator[int]:
     The kernel completes the TCP handshake from the listen backlog, so a plain
     connect would call this healthy.
     """
-    monkeypatch.setattr(healthcheck, "PROBE_TIMEOUT_SECONDS", 0.3)
+    monkeypatch.setattr(healthcheck, "PROBE_TIMEOUT_SECONDS", 0.05)
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
         sock.listen()
@@ -180,5 +180,5 @@ def test_real_server_health_endpoint_needs_no_token(monkeypatch, closed_port, tm
             assert time.monotonic() < deadline, "server never became healthy"
             time.sleep(0.05)
     finally:
-        server.terminate()
+        server.kill()
         server.wait(timeout=10)
