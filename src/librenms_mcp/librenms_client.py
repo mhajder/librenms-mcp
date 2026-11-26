@@ -1,5 +1,7 @@
 import logging
 import os
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version
 from typing import Any
 from typing import Literal
 
@@ -18,6 +20,13 @@ from librenms_mcp.utils import normalize_transport
 from librenms_mcp.utils import path_segment
 
 logger = logging.getLogger(__name__)
+
+try:
+    APP_VERSION = version("librenms-mcp")
+except PackageNotFoundError:
+    APP_VERSION = "0.0.1"
+
+DEFAULT_USER_AGENT = f"librenms-mcp/{APP_VERSION}"
 
 
 class LibreNMSHTTPError(RuntimeError):
@@ -218,10 +227,16 @@ class LibreNMSClient:
         self.client: httpx2.AsyncClient | None = None
         self._initialized = True
 
+    def _user_agent(self) -> str:
+        return (self.config.user_agent or "").strip() or DEFAULT_USER_AGENT
+
     async def __aenter__(self):
         """Enter the async context manager."""
         if self.client is None:
-            headers = {"X-Auth-Token": self.config.token}
+            headers = {
+                "X-Auth-Token": self.config.token,
+                "User-Agent": self._user_agent(),
+            }
             self.client = httpx2.AsyncClient(
                 verify=self.config.verify_ssl,
                 timeout=self.config.timeout,
@@ -446,6 +461,7 @@ def get_librenms_config_from_env() -> LibreNMSConfig:
         token=token,
         verify_ssl=env_bool("LIBRENMS_VERIFY_SSL", default=True),
         timeout=_env_setting("LIBRENMS_TIMEOUT", "timeout"),
+        user_agent=env_str("LIBRENMS_USER_AGENT"),
         read_only_mode=env_bool("READ_ONLY_MODE", default=False),
         redact_snmp_credentials=env_bool("REDACT_SNMP_CREDENTIALS", default=True),
         disabled_tags=disabled_tags,

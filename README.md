@@ -625,6 +625,7 @@ The server supports SSL certificate verification and custom timeout settings:
 ```env
 LIBRENMS_VERIFY_SSL=true    # Enable SSL certificate verification
 LIBRENMS_TIMEOUT=30         # Connection timeout in seconds
+# LIBRENMS_USER_AGENT=      # Optional User-Agent header (default: librenms-mcp/<version>)
 ```
 
 ### Transport Configuration

@@ -12,6 +12,10 @@ class LibreNMSConfig(BaseModel):
     token: str = Field(..., description="LibreNMS API token")
     verify_ssl: bool = Field(True, description="Verify SSL (true/false)")
     timeout: int = Field(30, gt=0, description="Timeout in seconds")
+    user_agent: str | None = Field(
+        None,
+        description="User-Agent header sent upstream (unset = librenms-mcp/<version>)",
+    )
     read_only_mode: bool = Field(False, description="Read-only mode (true/false)")
     redact_snmp_credentials: bool = Field(
         True,
