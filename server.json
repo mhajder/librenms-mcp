@@ -394,7 +394,7 @@
         },
         {
           "name": "SENTRY_SEND_DEFAULT_PII",
-          "description": "Allow Sentry to include default PII, including tool inputs and outputs, in events (true/false)",
+          "description": "Send PII to Sentry: tool inputs and outputs, HTTP bodies, stack frame variables, user details, cookies and client IP headers; secret-looking names (password, token, key) stay filtered (true/false)",
           "default": "false",
           "isRequired": false,
           "isSecret": false
@@ -413,22 +413,21 @@
         },
         {
           "name": "SENTRY_PROFILE_SESSION_SAMPLE_RATE",
-          "description": "Sentry profile session sample rate (0.0-1.0)",
-          "default": "1.0",
+          "description": "Sentry profile session sample rate (0.0-1.0; 0.0 turns profiling off)",
+          "default": "0.0",
           "isRequired": false,
           "isSecret": false
         },
         {
           "name": "SENTRY_PROFILE_LIFECYCLE",
-          "description": "Sentry profiling lifecycle mode",
+          "description": "Sentry profiling lifecycle mode (trace or manual)",
           "default": "trace",
           "isRequired": false,
           "isSecret": false
         },
         {
           "name": "SENTRY_ENABLE_LOGS",
-          "description": "Enable Sentry log capture integration (true/false)",
-          "default": "true",
+          "description": "Send application logs to Sentry Logs (true/false; defaults to the SENTRY_SEND_DEFAULT_PII value)",
           "isRequired": false,
           "isSecret": false
         },
