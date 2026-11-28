@@ -1,5 +1,32 @@
 # Changelog
 
+## [1.14.0](https://github.com/mhajder/librenms-mcp/compare/v1.13.0...v1.14.0) (2026-11-28)
+
+
+### 🚀 Features
+
+* **client:** make outbound User-Agent configurable ([55b9f64](https://github.com/mhajder/librenms-mcp/commit/55b9f641d7f813b864955e50789ecbd4a2f2a69c))
+* **tools:** add device_port_stack, and VLANs on device_ports and port_get ([#235](https://github.com/mhajder/librenms-mcp/issues/235)) ([817809b](https://github.com/mhajder/librenms-mcp/commit/817809b8ddd1df0b42ebff3184e72dd34f830cce))
+
+
+### 🐛 Bug Fixes
+
+* **deps:** support sentry-sdk 3 ([47215ef](https://github.com/mhajder/librenms-mcp/commit/47215ef556de5b0eead29b3fb449edf9c4d61cc1))
+* **graphs:** reject empty graph image responses ([#241](https://github.com/mhajder/librenms-mcp/issues/241)) ([de7e974](https://github.com/mhajder/librenms-mcp/commit/de7e974ef55f8b3a1ef2b2cea2d3b4fca02f1e89))
+
+
+### 📦 Build
+
+* **deps:** bump the docker group across 1 directory with 2 updates ([#234](https://github.com/mhajder/librenms-mcp/issues/234)) ([4ba49e1](https://github.com/mhajder/librenms-mcp/commit/4ba49e103dc63d3e221c8739452531bc21326043))
+* **deps:** bump the uv-dependencies group across 1 directory with 3 updates ([#242](https://github.com/mhajder/librenms-mcp/issues/242)) ([7fb777b](https://github.com/mhajder/librenms-mcp/commit/7fb777b80ff7f0ca06290704fd63ca443f16d561))
+* **deps:** pin sentry-sdk below 3 ([6d62248](https://github.com/mhajder/librenms-mcp/commit/6d62248103d219f215bb99240788d329ef387c8c))
+* **docker:** harden runtime image and precompile bytecode ([c008a7e](https://github.com/mhajder/librenms-mcp/commit/c008a7e4e19d62a2b1d118a86a0f271a12941a1a))
+
+
+### 🧪 Tests
+
+* optimize test suite runtime and scope pre-commit stages ([356ec30](https://github.com/mhajder/librenms-mcp/commit/356ec300e72ea0116d6d616c469925dab084e85c))
+
 ## [1.13.0](https://github.com/mhajder/librenms-mcp/compare/v1.12.1...v1.13.0) (2026-11-07)
 
 
